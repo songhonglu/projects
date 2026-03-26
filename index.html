@@ -328,9 +328,20 @@ function loadDB() {
 function saveDB(db) { localStorage.setItem(DB_KEY, JSON.stringify(db)); }
 
 // 初始化数据库（仅在首次访问时执行，后续直接读取数据库）
+// 使用 _initialized 标记避免重复初始化
+let _dbInitialized = false;
+
 async function initDB() {
+  // 如果已经初始化过，直接返回
+  if (_dbInitialized) {
+    return getDB();
+  }
+  
   let db = loadDB();
-  if (!db) {
+  
+  // 严格检查：只有当 db 为 null 或没有 users 数组时才初始化
+  if (!db || !db.users || !Array.isArray(db.users) || db.users.length === 0) {
+    console.log('首次初始化数据库...');
     const adminHash = await sha256('songhw:Seeyon@JD');
     const chenptHash = await sha256('chenpt:123456');
     db = {
@@ -362,7 +373,11 @@ async function initDB() {
       theme: 'dark',
     };
     saveDB(db);
+  } else {
+    console.log('数据库已存在，跳过初始化');
   }
+  
+  _dbInitialized = true;
   return db;
 }
 
@@ -1365,15 +1380,24 @@ document.addEventListener('click', e => {
 function showApp(user) {
   document.getElementById('login-overlay').classList.add('hidden');
   document.getElementById('app').classList.add('visible');
+  
+  // 重置到项目列表标签页（防止上一个用户的标签页状态残留）
+  document.getElementById('tab-projects').style.display = '';
+  document.getElementById('tab-admin').style.display = 'none';
+  document.querySelectorAll('.h-nav .nav-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.h-nav .nav-btn[onclick*="projects"]').classList.add('active');
+  
   // 设置用户信息
   document.getElementById('u-name').textContent = user.displayName || user.username;
   document.getElementById('u-avatar').textContent = user.username[0].toUpperCase();
   document.getElementById('u-avatar').style.background = user.avatar || 'linear-gradient(135deg,#2563eb,#16a34a)';
   document.getElementById('u-role').textContent = user.role === 'admin' ? '👑 管理员' : '👤 普通用户';
-    // 管理员显示额外功能
-    const isAdmin = user.role === 'admin';
-    document.getElementById('btn-authctrl').style.display = isAdmin ? '' : 'none';
-    document.getElementById('btn-users').style.display = isAdmin ? '' : 'none';
+  
+  // 管理员显示额外功能
+  const isAdmin = user.role === 'admin';
+  document.getElementById('btn-authctrl').style.display = isAdmin ? '' : 'none';
+  document.getElementById('btn-users').style.display = isAdmin ? '' : 'none';
+  
   renderProjects();
 }
 
