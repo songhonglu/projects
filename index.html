@@ -248,7 +248,7 @@ footer a{color:var(--text3);text-decoration:none;}
     </div>
     <div class="h-nav">
       <button class="nav-btn active" onclick="switchTab('projects',this)">📦 项目列表</button>
-      <button class="nav-btn" id="btn-users" onclick="switchTab('admin',this)">👤 用户管理</button>
+      <button class="nav-btn" id="btn-users" onclick="switchTab('admin',this)" style="display:none">👤 用户管理</button>
     </div>
     <div class="h-right">
       <!-- 主题切换 -->
@@ -671,6 +671,12 @@ function updateStats(projects, db) {
 }
 
 function toggleAuth(projId, enabled) {
+  // 权限检查：只有管理员可以切换访问控制
+  if (!currentUser || currentUser.role !== 'admin') {
+    alert('无权修改访问控制设置');
+    return;
+  }
+  
   const db = getDB();
   db.authCtrl[projId] = enabled;
   saveDB(db);
@@ -691,8 +697,15 @@ function renderAdminPanel() {
   const panel = document.getElementById('admin-panel');
   const isAdmin = currentUser && currentUser.role === 'admin';
 
-  // 普通用户只能看到自己
-  const usersToShow = isAdmin ? db.users : db.users.filter(u => u.id === currentUser.id);
+  // 权限检查：非管理员强制只能看到自己
+  let usersToShow;
+  if (isAdmin) {
+    usersToShow = db.users;
+  } else {
+    // 普通用户：只返回当前用户（从数据库重新读取确保最新）
+    const self = db.users.find(u => u.id === currentUser.id);
+    usersToShow = self ? [self] : [];
+  }
 
   if (isAdmin) {
     // 管理员视图：表格形式展示所有用户
@@ -853,23 +866,52 @@ let editingUserId = null;
 
 // 打开用户编辑弹窗（管理员用）
 function openUserEditModal(uid) {
+  // 权限检查：只有管理员可以编辑用户
+  if (!currentUser || currentUser.role !== 'admin') {
+    console.warn('无权编辑用户');
+    return;
+  }
+  
   const db = getDB();
   const user = db.users.find(u => u.id === uid);
   if (!user) return;
   
   editingUserId = uid;
+  
+  // 预填充用户信息（保留原有信息方便对比）
   document.getElementById('edit-displayName').value = user.displayName || '';
   document.getElementById('edit-email').value = user.email || '';
   document.getElementById('edit-phone').value = user.phone || '';
   
-  // 渲染项目权限选择
-  const perms = user.projectPerms === null ? PROJECTS.map(p => p.id) : (user.projectPerms || []);
+  // 渲染项目权限选择（管理员显示全部项目，普通用户显示其有权限的项目）
+  let perms;
+  if (user.role === 'admin') {
+    // 管理员默认拥有所有权限
+    perms = PROJECTS.map(p => p.id);
+  } else {
+    // 普通用户：null表示全部权限，数组表示具体权限
+    perms = user.projectPerms === null ? PROJECTS.map(p => p.id) : (user.projectPerms || []);
+  }
+  
+  // 保存当前权限状态到全局变量，用于后续对比
+  window._editUserOriginalPerms = [...perms];
+  window._editUserOriginalInfo = {
+    displayName: user.displayName || '',
+    email: user.email || '',
+    phone: user.phone || ''
+  };
+  
   const permChips = PROJECTS.map(p => `
-    <span class="perm-chip ${perms.includes(p.id)?'on':''}" onclick="toggleEditPerm('${p.id}')" style="cursor:pointer;">
+    <span class="perm-chip ${perms.includes(p.id)?'on':''}" onclick="toggleEditPerm('${p.id}')" style="cursor:pointer;${user.role==='admin'?'opacity:0.5;pointer-events:none;':''}">
       ${p.icon} ${p.name}
     </span>
   `).join('');
   document.getElementById('edit-perms').innerHTML = permChips;
+  
+  // 如果是管理员，添加提示
+  if (user.role === 'admin') {
+    document.getElementById('edit-perms').innerHTML += '<div style="width:100%;margin-top:8px;font-size:11px;color:var(--text3);">管理员自动拥有所有项目权限</div>';
+  }
   
   document.getElementById('user-edit-modal').style.display = 'flex';
 }
@@ -882,6 +924,12 @@ function closeUserEditModal() {
 
 // 切换编辑弹窗中的权限（允许空数组）
 function toggleEditPerm(projId) {
+  // 权限检查
+  if (!currentUser || currentUser.role !== 'admin') {
+    console.warn('无权修改权限');
+    return;
+  }
+  
   const db = getDB();
   const user = db.users.find(u => u.id === editingUserId);
   if (!user || user.role === 'admin') {
@@ -916,6 +964,12 @@ function toggleEditPerm(projId) {
 
 // 保存用户编辑（管理员用）
 function saveUserEdit() {
+  // 权限检查：只有管理员可以保存用户编辑
+  if (!currentUser || currentUser.role !== 'admin') {
+    alert('无权保存用户信息');
+    return;
+  }
+  
   const displayName = document.getElementById('edit-displayName').value.trim();
   const email = document.getElementById('edit-email').value.trim();
   const phone = document.getElementById('edit-phone').value.trim();
@@ -940,12 +994,18 @@ function saveUserEdit() {
     return;
   }
   
+  // 对比并记录变更
+  const changes = [];
+  if (user.displayName !== displayName) changes.push(`显示名: "${user.displayName}" → "${displayName}"`);
+  if (user.email !== email) changes.push(`邮箱: "${user.email || '-'}" → "${email || '-'}"`);
+  if (user.phone !== phone) changes.push(`手机: "${user.phone || '-'}" → "${phone || '-'}"`);
+  
   // 保存所有修改（包括projectPerms，它已经在toggleEditPerm中实时修改了）
   user.displayName = displayName;
   user.email = email;
   user.phone = phone;
-  // 确保projectPerms是数组
-  if (user.projectPerms === null) user.projectPerms = [];
+  // 确保projectPerms是数组（普通用户）
+  if (user.role !== 'admin' && user.projectPerms === null) user.projectPerms = [];
   
   console.log('保存用户:', user.username, 'projectPerms:', user.projectPerms);
   
@@ -970,7 +1030,13 @@ function saveUserEdit() {
   
   closeUserEditModal();
   renderAdminPanel();
-  alert('用户信息已保存');
+  
+  // 显示变更摘要
+  if (changes.length > 0) {
+    alert(`用户信息已保存\n\n变更内容：\n${changes.join('\n')}`);
+  } else {
+    alert('用户信息已保存（无变更）');
+  }
 }
 
 // 普通用户更新自己的信息
@@ -1002,6 +1068,12 @@ function updateSelfInfo() {
 }
 
 function togglePerm(uid, projId) {
+  // 权限检查：只有管理员可以切换权限
+  if (!currentUser || currentUser.role !== 'admin') {
+    alert('无权修改权限');
+    return;
+  }
+  
   const db = getDB();
   const user = db.users.find(u => u.id === uid);
   if (!user || user.role === 'admin') return;
@@ -1014,18 +1086,36 @@ function togglePerm(uid, projId) {
 }
 
 function grantAll(uid) {
+  // 权限检查：只有管理员可以授权
+  if (!currentUser || currentUser.role !== 'admin') {
+    alert('无权修改权限');
+    return;
+  }
+  
   const db = getDB();
   const user = db.users.find(u => u.id === uid);
   if (user) { user.projectPerms = null; saveDB(db); renderAdminPanel(); }
 }
 
 function revokeAll(uid) {
+  // 权限检查：只有管理员可以撤销权限
+  if (!currentUser || currentUser.role !== 'admin') {
+    alert('无权修改权限');
+    return;
+  }
+  
   const db = getDB();
   const user = db.users.find(u => u.id === uid);
   if (user) { user.projectPerms = []; saveDB(db); renderAdminPanel(); }
 }
 
 async function addUser() {
+  // 权限检查：只有管理员可以添加用户
+  if (!currentUser || currentUser.role !== 'admin') {
+    alert('无权添加用户');
+    return;
+  }
+  
   const username = document.getElementById('new-user').value.trim();
   const display = document.getElementById('new-display').value.trim();
   const pass = document.getElementById('new-pass').value;
@@ -1050,9 +1140,16 @@ async function addUser() {
   document.getElementById('new-user').value = '';
   document.getElementById('new-display').value = '';
   document.getElementById('new-pass').value = '';
+  alert(`用户 "${username}" 已创建成功`);
 }
 
 async function resetPassword(uid) {
+  // 权限检查：只有管理员可以重置密码
+  if (!currentUser || currentUser.role !== 'admin') {
+    alert('无权重置密码');
+    return;
+  }
+  
   const newPass = prompt('请输入新密码（至少6位）：');
   if (!newPass || newPass.length < 6) { alert('密码不能少于6位'); return; }
   const db = getDB();
@@ -1060,15 +1157,26 @@ async function resetPassword(uid) {
   if (!user) return;
   user.passwordHash = await sha256(user.username + ':' + newPass);
   saveDB(db);
-  alert('密码已重置');
+  alert(`用户 "${user.username}" 的密码已重置成功`);
 }
 
 function deleteUser(uid) {
-  if (!confirm('确定要删除该用户吗？')) return;
+  // 权限检查：只有管理员可以删除用户
+  if (!currentUser || currentUser.role !== 'admin') {
+    alert('无权删除用户');
+    return;
+  }
+  
   const db = getDB();
+  const user = db.users.find(u => u.id === uid);
+  if (!user) return;
+  
+  if (!confirm(`确定要删除用户 "${user.username}" 吗？\n\n此操作不可撤销！`)) return;
+  
   db.users = db.users.filter(u => u.id !== uid);
   saveDB(db);
   renderAdminPanel();
+  alert(`用户 "${user.username}" 已删除`);
 }
 
 /* ══════════════════════════════════════════════════════
@@ -1216,6 +1324,12 @@ function closeSidebar() {
    ⑨ 标签页切换
 ══════════════════════════════════════════════════════ */
 function switchTab(tab, btn) {
+  // 权限检查：非管理员不能访问 admin 标签页
+  if (tab === 'admin' && (!currentUser || currentUser.role !== 'admin')) {
+    console.warn('无权访问用户管理页面');
+    return;
+  }
+  
   document.querySelectorAll('.h-nav .nav-btn').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
   document.getElementById('tab-projects').style.display = tab==='projects' ? '' : 'none';
@@ -1259,6 +1373,7 @@ function showApp(user) {
     // 管理员显示额外功能
     const isAdmin = user.role === 'admin';
     document.getElementById('btn-authctrl').style.display = isAdmin ? '' : 'none';
+    document.getElementById('btn-users').style.display = isAdmin ? '' : 'none';
   renderProjects();
 }
 
