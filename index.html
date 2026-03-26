@@ -884,7 +884,10 @@ function closeUserEditModal() {
 function toggleEditPerm(projId) {
   const db = getDB();
   const user = db.users.find(u => u.id === editingUserId);
-  if (!user || user.role === 'admin') return;
+  if (!user || user.role === 'admin') {
+    console.log('toggleEditPerm: 用户不存在或是管理员');
+    return;
+  }
   
   // 确保 projectPerms 是数组（不是 null）
   if (user.projectPerms === null) user.projectPerms = [];
@@ -892,9 +895,14 @@ function toggleEditPerm(projId) {
   const idx = user.projectPerms.indexOf(projId);
   if (idx >= 0) {
     user.projectPerms.splice(idx, 1); // 取消授权
+    console.log('取消授权:', projId, '当前权限:', user.projectPerms);
   } else {
     user.projectPerms.push(projId); // 添加授权
+    console.log('添加授权:', projId, '当前权限:', user.projectPerms);
   }
+  
+  // 立即保存到数据库（确保数据不丢失）
+  saveDB(db);
   
   // 重新渲染权限选择
   const perms = user.projectPerms;
@@ -927,7 +935,10 @@ function saveUserEdit() {
   
   const db = getDB();
   const user = db.users.find(u => u.id === editingUserId);
-  if (!user) return;
+  if (!user) {
+    alert('用户不存在');
+    return;
+  }
   
   // 保存所有修改（包括projectPerms，它已经在toggleEditPerm中实时修改了）
   user.displayName = displayName;
@@ -936,7 +947,14 @@ function saveUserEdit() {
   // 确保projectPerms是数组
   if (user.projectPerms === null) user.projectPerms = [];
   
+  console.log('保存用户:', user.username, 'projectPerms:', user.projectPerms);
+  
   saveDB(db);
+  
+  // 验证保存是否成功
+  const verifyDb = getDB();
+  const verifyUser = verifyDb.users.find(u => u.id === editingUserId);
+  console.log('验证保存:', verifyUser.username, 'projectPerms:', verifyUser.projectPerms);
   
   // 如果修改的是当前登录用户，同步更新 currentUser
   if (currentUser && currentUser.id === editingUserId) {
