@@ -28,7 +28,7 @@
 
   // ── 配置 ──────────────────────────────────────────────────────────────
   const PORTAL_URL    = 'https://songhonglu.github.io/projects/index.html';
-  const PORTAL_TOKEN  = 'portal_v1_songhw_2026';
+  const PORTAL_TOKEN  = 'portal_v1_2026';
   const DB_KEY        = 'portal_db_v2';
   const SESSION_KEY   = 'portal_auth_session';
   const SESSION_TTL   = 8 * 60 * 60 * 1000;  // 8 小时
@@ -113,7 +113,7 @@
       '  <h2 style="margin:0;font-size:20px;font-weight:600;">无访问权限</h2>',
       '  <p style="color:#57606a;margin:0;max-width:400px;">',
       '    您好，<strong>' + (username || '用户') + '</strong>。您没有访问此项目的权限。<br>',
-      '    联系管理员（songhw）为您开通。',
+      '    联系管理员为您开通。',
       '  </p>',
       '  <a href="' + PORTAL_URL + '" target="_self" style="margin-top:8px;padding:10px 24px;',
       '  background:#1f6feb;color:#fff;border-radius:8px;text-decoration:none;font-weight:600">',

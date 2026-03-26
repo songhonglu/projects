@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>项目门户 · SongHW</title>
+<title>项目门户</title>
 <style>
 /* ════════════════════════════════════════════════
    主题变量
@@ -215,7 +215,7 @@ footer a{color:var(--text3);text-decoration:none;}
     <div class="login-logo">
       <div class="licon">🏠</div>
       <h1>项目门户</h1>
-      <p>Projects Portal · SongHW</p>
+      <p>Projects Portal</p>
     </div>
     <div class="lf"><label>用户名</label><input type="text" id="l-user" placeholder="请输入用户名" autocomplete="username"/></div>
     <div class="lf"><label>密码</label><input type="password" id="l-pass" placeholder="请输入密码" autocomplete="current-password"/></div>
@@ -296,7 +296,7 @@ footer a{color:var(--text3);text-decoration:none;}
     </div>
   </main>
 
-  <footer>&copy; 2026 SongHW · Projects Portal &nbsp;·&nbsp; <a href="https://github.com/songhonglu" target="_blank">GitHub</a></footer>
+  <footer>&copy; 2026 Projects Portal &nbsp;·&nbsp; <a href="https://github.com/songhonglu" target="_blank">GitHub</a></footer>
 </div>
 
 <script>
@@ -320,7 +320,7 @@ const PROJECTS = [
 ══════════════════════════════════════════════════════ */
 const DB_KEY  = 'portal_db_v2';
 const SES_KEY = 'portal_session';
-const TOKEN   = 'portal_v1_songhw_2026';   // 跨域传递用的固定 token
+const TOKEN   = 'portal_v1_2026';   // 跨域传递用的固定 token
 
 function loadDB() {
   try { return JSON.parse(localStorage.getItem(DB_KEY) || 'null'); } catch { return null; }
@@ -332,16 +332,28 @@ async function initDB() {
   let db = loadDB();
   if (!db) {
     const adminHash = await sha256('songhw:Seeyon@JD');
+    const chenptHash = await sha256('chenpt:123456');
     db = {
-      users: [{
-        id: 'user_admin',
-        username: 'songhw',
-        displayName: '宋老师',
-        passwordHash: adminHash,
-        role: 'admin',
-        projectPerms: null,   // null = 全部权限
-        avatar: '#2563eb',
-      }],
+      users: [
+        {
+          id: 'user_admin',
+          username: 'songhw',
+          displayName: '宋老师',
+          passwordHash: adminHash,
+          role: 'admin',
+          projectPerms: null,   // null = 全部权限
+          avatar: '#2563eb',
+        },
+        {
+          id: 'user_chenpt',
+          username: 'chenpt',
+          displayName: '陈鹏涛',
+          passwordHash: chenptHash,
+          role: 'user',
+          projectPerms: ['contractmap', 'huarongdao-game', 'amberk', 'number-huarongdao'],
+          avatar: '#16a34a',
+        }
+      ],
       authCtrl: { contractmap: true, 'huarongdao-game': false, amberk: true, 'number-huarongdao': false },
       theme: 'dark',
     };
