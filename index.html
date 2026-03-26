@@ -248,7 +248,7 @@ footer a{color:var(--text3);text-decoration:none;}
     </div>
     <div class="h-nav">
       <button class="nav-btn active" onclick="switchTab('projects',this)">📦 项目列表</button>
-      <button class="nav-btn" id="btn-admin" onclick="switchTab('admin',this)" style="display:none">👤 用户管理</button>
+      <button class="nav-btn" id="btn-users" onclick="switchTab('admin',this)">👤 用户管理</button>
     </div>
     <div class="h-right">
       <!-- 主题切换 -->
@@ -289,7 +289,7 @@ footer a{color:var(--text3);text-decoration:none;}
       <div id="projects-container"></div>
     </div>
 
-    <!-- 用户管理页（管理员专属） -->
+    <!-- 用户管理页（管理员可管理所有用户，普通用户可查看列表和编辑自己） -->
     <div id="tab-admin" style="display:none">
       <div class="page-hd"><h2>👤 用户管理</h2></div>
       <div id="admin-panel"><!-- 动态渲染 --></div>
@@ -314,7 +314,7 @@ const PROJECTS = [
 
 /* ══════════════════════════════════════════════════════
    ② 用户体系（localStorage 持久化）
-   用户数据结构：{ id, username, displayName, passwordHash, role, projectPerms, avatar }
+   用户数据结构：{ id, username, displayName, passwordHash, role, projectPerms, avatar, email, phone }
    role: 'admin' | 'user'
    projectPerms: ['contractmap','huarongdao-game',...]  (null = 全部)
 ══════════════════════════════════════════════════════ */
@@ -327,7 +327,7 @@ function loadDB() {
 }
 function saveDB(db) { localStorage.setItem(DB_KEY, JSON.stringify(db)); }
 
-// 初始化数据库
+// 初始化数据库（仅在首次访问时执行，后续直接读取数据库）
 async function initDB() {
   let db = loadDB();
   if (!db) {
@@ -341,8 +341,10 @@ async function initDB() {
           displayName: '宋老师',
           passwordHash: adminHash,
           role: 'admin',
-          projectPerms: null,   // null = 全部权限
+          projectPerms: null,
           avatar: '#2563eb',
+          email: '',
+          phone: '',
         },
         {
           id: 'user_chenpt',
@@ -352,6 +354,8 @@ async function initDB() {
           role: 'user',
           projectPerms: ['contractmap', 'huarongdao-game', 'amberk', 'number-huarongdao'],
           avatar: '#16a34a',
+          email: '',
+          phone: '',
         }
       ],
       authCtrl: { contractmap: true, 'huarongdao-game': false, amberk: true, 'number-huarongdao': false },
@@ -654,19 +658,24 @@ function ghIcon() {
 }
 
 /* ══════════════════════════════════════════════════════
-   ⑦ 用户管理（管理员专用）
+   ⑦ 用户管理（管理员可编辑所有用户信息，普通用户只读）
 ══════════════════════════════════════════════════════ */
 function renderAdminPanel() {
   const db = getDB();
   const panel = document.getElementById('admin-panel');
+  const isAdmin = currentUser && currentUser.role === 'admin';
 
   const rows = db.users.map(u => {
     const perms = u.projectPerms === null ? PROJECTS.map(p => p.id) : (u.projectPerms || []);
     const chips = PROJECTS.map(p => `
-      <span class="perm-chip ${perms.includes(p.id)?'on':''}"
-            onclick="togglePerm('${u.id}','${p.id}')" title="${p.name}">
+      <span class="perm-chip ${perms.includes(p.id)?'on':''} ${isAdmin ? '' : 'disabled'}"
+            ${isAdmin ? `onclick="togglePerm('${u.id}','${p.id}')"` : ''} title="${p.name}">
         ${p.icon} ${p.id}
       </span>`).join('');
+    
+    // 管理员可以编辑所有用户，普通用户只能编辑自己
+    const canEdit = isAdmin || u.id === currentUser.id;
+    
     return `
       <div class="user-row" id="ur-${u.id}">
         <div class="ur-top">
@@ -678,18 +687,30 @@ function renderAdminPanel() {
             </div>
           </div>
           <div class="ur-actions">
-            ${u.id !== 'user_admin' ? `<button class="icon-btn" onclick="resetPassword('${u.id}')">🔑 重置密码</button>` : ''}
-            ${u.id !== 'user_admin' ? `<button class="icon-btn danger" onclick="deleteUser('${u.id}')">🗑 删除</button>` : ''}
+            ${isAdmin && u.id !== 'user_admin' ? `<button class="icon-btn" onclick="resetPassword('${u.id}')">🔑 重置密码</button>` : ''}
+            ${isAdmin && u.id !== 'user_admin' ? `<button class="icon-btn danger" onclick="deleteUser('${u.id}')">🗑 删除</button>` : ''}
             ${u.id === 'user_admin' ? `<span style="font-size:11px;color:var(--text3)">超级管理员</span>` : ''}
           </div>
         </div>
-        <div style="font-size:11px;color:var(--text3);margin-bottom:6px">项目访问权限 ${u.projectPerms===null?'<span style="color:var(--accent4)">(全部)</span>':''}：</div>
+        
+        <!-- 联系信息 -->
+        <div style="margin:10px 0;padding:10px;background:var(--surface2);border-radius:8px;">
+          <div style="font-size:11px;color:var(--text3);margin-bottom:8px;">📧 联系信息 ${canEdit ? '(可编辑)' : '(只读)'}：</div>
+          <div class="form-row" style="margin-bottom:6px;">
+            <input type="email" id="email-${u.id}" value="${u.email || ''}" placeholder="邮箱地址" ${canEdit ? '' : 'readonly'} style="flex:1;" />
+            <input type="tel" id="phone-${u.id}" value="${u.phone || ''}" placeholder="手机号码" ${canEdit ? '' : 'readonly'} style="flex:1;" />
+            ${canEdit ? `<button class="icon-btn" onclick="updateUserInfo('${u.id}')">💾 保存</button>` : ''}
+          </div>
+        </div>
+        
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px">项目访问权限 ${u.projectPerms===null?'<span style="color:var(--accent4)">(全部)</span>':''} ${isAdmin ? '(点击切换)' : ''}：</div>
         <div class="perm-grid">${chips}</div>
-        ${u.projectPerms!==null&&u.id!=='user_admin'?`<div style="margin-top:6px"><button class="icon-btn" onclick="grantAll('${u.id}')">全部授权</button> <button class="icon-btn" onclick="revokeAll('${u.id}')">全部撤销</button></div>`:''}
+        ${isAdmin && u.projectPerms!==null&&u.id!=='user_admin'?`<div style="margin-top:6px"><button class="icon-btn" onclick="grantAll('${u.id}')">全部授权</button> <button class="icon-btn" onclick="revokeAll('${u.id}')">全部撤销</button></div>`:''}
       </div>`;
   }).join('');
 
-  panel.innerHTML = `
+  // 只有管理员显示添加用户表单
+  const addUserForm = isAdmin ? `
     <div class="add-user-form">
       <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--text)">➕ 添加新用户</div>
       <div class="form-row">
@@ -707,8 +728,45 @@ function renderAdminPanel() {
         <button class="btn-primary" onclick="addUser()">创建用户</button>
       </div>
     </div>
+  ` : '';
+
+  panel.innerHTML = `
+    ${addUserForm}
     <div class="sb-section-title">用户列表（${db.users.length} 人）</div>
     ${rows}`;
+}
+
+// 更新用户信息（邮箱、手机号）
+function updateUserInfo(uid) {
+  const email = document.getElementById('email-' + uid).value.trim();
+  const phone = document.getElementById('phone-' + uid).value.trim();
+  
+  // 简单验证
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    alert('邮箱格式不正确');
+    return;
+  }
+  if (phone && !/^1[3-9]\d{9}$/.test(phone)) {
+    alert('手机号格式不正确（请输入11位手机号）');
+    return;
+  }
+  
+  const db = getDB();
+  const user = db.users.find(u => u.id === uid);
+  if (!user) return;
+  
+  user.email = email;
+  user.phone = phone;
+  saveDB(db);
+  
+  // 如果修改的是当前用户，更新 currentUser
+  if (currentUser && currentUser.id === uid) {
+    currentUser.email = email;
+    currentUser.phone = phone;
+  }
+  
+  alert('信息已保存');
+  renderAdminPanel();
 }
 
 function togglePerm(uid, projId) {
@@ -751,7 +809,9 @@ async function addUser() {
     username, displayName: display || username,
     passwordHash: hash, role,
     projectPerms: role === 'admin' ? null : [],
-    avatar: colors[Math.floor(Math.random()*colors.length)]
+    avatar: colors[Math.floor(Math.random()*colors.length)],
+    email: '',
+    phone: ''
   });
   saveDB(db);
   renderAdminPanel();
@@ -825,6 +885,8 @@ function openSidebar(type) {
   } else if (type === 'profile') {
     title.textContent = '👤 个人信息';
     const u = currentUser;
+    const db = getDB();
+    const user = db.users.find(user => user.id === u.id);
     body.innerHTML = `
       <div class="sb-section">
         <div style="text-align:center;padding:20px 0">
@@ -833,7 +895,22 @@ function openSidebar(type) {
           <div style="font-size:12px;color:var(--text2)">@${u.username}</div>
           <div style="font-size:11px;margin-top:4px;color:${u.role==='admin'?'var(--accent4)':'var(--text2)'}">${u.role==='admin'?'👑 管理员':'👤 普通用户'}</div>
         </div>
-        <div class="sb-section-title" style="margin-top:16px">可访问项目</div>
+        
+        <!-- 联系信息编辑 -->
+        <div class="sb-section-title" style="margin-top:16px">📧 联系信息</div>
+        <div style="padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:12px;">
+          <div class="lf" style="margin-bottom:10px;">
+            <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px;">邮箱地址</label>
+            <input type="email" id="profile-email" value="${user?.email || ''}" placeholder="请输入邮箱" style="width:100%;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;" />
+          </div>
+          <div class="lf" style="margin-bottom:10px;">
+            <label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px;">手机号码</label>
+            <input type="tel" id="profile-phone" value="${user?.phone || ''}" placeholder="请输入手机号" style="width:100%;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;" />
+          </div>
+          <button class="btn-primary" onclick="updateProfileInfo()" style="width:100%;">💾 保存联系信息</button>
+        </div>
+        
+        <div class="sb-section-title">可访问项目</div>
         ${getUserProjects().map(p=>`<div style="padding:8px 12px;margin-bottom:6px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:13px">${p.icon} ${p.name}</div>`).join('')}
       </div>`;
   } else if (type === 'changepwd') {
@@ -868,6 +945,36 @@ async function changePassword() {
   setTimeout(() => { msg.style.display='none'; closeSidebar(); }, 1500);
 }
 
+// 更新个人信息（邮箱、手机号）
+function updateProfileInfo() {
+  const email = document.getElementById('profile-email').value.trim();
+  const phone = document.getElementById('profile-phone').value.trim();
+  
+  // 简单验证
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    alert('邮箱格式不正确');
+    return;
+  }
+  if (phone && !/^1[3-9]\d{9}$/.test(phone)) {
+    alert('手机号格式不正确（请输入11位手机号）');
+    return;
+  }
+  
+  const db = getDB();
+  const user = db.users.find(u => u.id === currentUser.id);
+  if (!user) return;
+  
+  user.email = email;
+  user.phone = phone;
+  saveDB(db);
+  
+  // 更新 currentUser
+  currentUser.email = email;
+  currentUser.phone = phone;
+  
+  alert('✅ 联系信息已保存');
+}
+
 function closeSidebar() {
   document.getElementById('sidebar').classList.remove('show');
   document.getElementById('sb-overlay').classList.remove('show');
@@ -877,11 +984,6 @@ function closeSidebar() {
    ⑨ 标签页切换
 ══════════════════════════════════════════════════════ */
 function switchTab(tab, btn) {
-  // 非管理员不允许进入用户管理页
-  if (tab === 'admin' && (!currentUser || currentUser.role !== 'admin')) {
-    console.warn('无权访问用户管理');
-    return;
-  }
   document.querySelectorAll('.h-nav .nav-btn').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
   document.getElementById('tab-projects').style.display = tab==='projects' ? '' : 'none';
@@ -913,10 +1015,9 @@ function showApp(user) {
   document.getElementById('u-avatar').textContent = user.username[0].toUpperCase();
   document.getElementById('u-avatar').style.background = user.avatar || 'linear-gradient(135deg,#2563eb,#16a34a)';
   document.getElementById('u-role').textContent = user.role === 'admin' ? '👑 管理员' : '👤 普通用户';
-  // 管理员显示额外功能
-  const isAdmin = user.role === 'admin';
-  document.getElementById('btn-admin').style.display = isAdmin ? '' : 'none';
-  document.getElementById('btn-authctrl').style.display = isAdmin ? '' : 'none';
+    // 管理员显示额外功能
+    const isAdmin = user.role === 'admin';
+    document.getElementById('btn-authctrl').style.display = isAdmin ? '' : 'none';
   renderProjects();
 }
 
