@@ -440,6 +440,22 @@ function restoreSession() {
   } catch { return null; }
 }
 
+// 刷新当前用户信息（从数据库读取最新数据）
+function refreshCurrentUser() {
+  if (!currentUser) return;
+  const db = getDB();
+  const latestUser = db.users.find(u => u.id === currentUser.id);
+  if (latestUser) {
+    currentUser.displayName = latestUser.displayName;
+    currentUser.email = latestUser.email;
+    currentUser.phone = latestUser.phone;
+    currentUser.projectPerms = latestUser.projectPerms;
+    currentUser.avatar = latestUser.avatar;
+    // 更新页面显示
+    document.getElementById('u-name').textContent = currentUser.displayName || currentUser.username;
+  }
+}
+
 function showLoginErr(msg) {
   const el = document.getElementById('l-err');
   el.textContent = msg; el.classList.add('show');
@@ -913,9 +929,13 @@ function saveUserEdit() {
   const user = db.users.find(u => u.id === editingUserId);
   if (!user) return;
   
+  // 保存所有修改（包括projectPerms，它已经在toggleEditPerm中实时修改了）
   user.displayName = displayName;
   user.email = email;
   user.phone = phone;
+  // 确保projectPerms是数组
+  if (user.projectPerms === null) user.projectPerms = [];
+  
   saveDB(db);
   
   // 如果修改的是当前登录用户，同步更新 currentUser
@@ -1182,7 +1202,16 @@ function switchTab(tab, btn) {
   if (btn) btn.classList.add('active');
   document.getElementById('tab-projects').style.display = tab==='projects' ? '' : 'none';
   document.getElementById('tab-admin').style.display = tab==='admin' ? '' : 'none';
-  if (tab === 'admin') renderAdminPanel();
+  if (tab === 'admin') {
+    // 刷新当前用户信息（确保显示最新数据）
+    refreshCurrentUser();
+    renderAdminPanel();
+  }
+  if (tab === 'projects') {
+    // 刷新用户信息和项目列表
+    refreshCurrentUser();
+    renderProjects();
+  }
 }
 
 /* ══════════════════════════════════════════════════════
