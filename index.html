@@ -1,613 +1,914 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>项目门户 · SongHW</title>
 <style>
-  /* ─────────────── 全局基础 ─────────────── */
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+/* ════════════════════════════════════════════════
+   主题变量
+════════════════════════════════════════════════ */
+:root,[data-theme="dark"] {
+  --bg:        #0d1117; --bg2:       #0f1923; --surface:   #161b22;
+  --surface2:  #1e2430; --border:    #30363d; --border2:   #21262d;
+  --accent:    #58a6ff; --accent2:   #3fb950; --accent3:   #f78166; --accent4: #d29922;
+  --text:      #e6edf3; --text2:     #8b949e; --text3:     #6e7681;
+  --radius:    12px;    --shadow:    0 8px 32px rgba(0,0,0,.5);
+  --login-bg:  radial-gradient(ellipse at 60% 40%, #0d1b2a, #070c14);
+}
+[data-theme="light"] {
+  --bg:#f6f8fa; --bg2:#eef1f5; --surface:#ffffff; --surface2:#f0f4f8;
+  --border:#d0d7de; --border2:#e1e4e8;
+  --accent:#0969da; --accent2:#1a7f37; --accent3:#cf222e; --accent4:#9a6700;
+  --text:#1f2328; --text2:#57606a; --text3:#8c959f;
+  --shadow:0 4px 16px rgba(0,0,0,.12);
+  --login-bg: radial-gradient(ellipse at 60% 40%, #dce8f5, #c8dff0);
+}
+[data-theme="corporate"] {
+  --bg:#0a1628; --bg2:#0c1e36; --surface:#0f2040; --surface2:#0d1b32;
+  --border:#1a3a6e; --border2:#0f2a50;
+  --accent:#4d9fff; --accent2:#2ea44f; --accent3:#f85149; --accent4:#e3b341;
+  --text:#e8f0fe; --text2:#8ba3c8; --text3:#6a88aa;
+  --shadow:0 8px 32px rgba(0,0,0,.6);
+  --login-bg: radial-gradient(ellipse at 60% 40%, #071020, #030810);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans SC',sans-serif;background:var(--bg);color:var(--text);transition:background .3s,color .3s;}
 
-  :root {
-    --bg: #0d1117;
-    --surface: #161b22;
-    --surface2: #1e2430;
-    --border: #30363d;
-    --accent: #58a6ff;
-    --accent2: #3fb950;
-    --accent3: #f78166;
-    --text: #e6edf3;
-    --text2: #8b949e;
-    --text3: #6e7681;
-    --radius: 12px;
-    --shadow: 0 8px 32px rgba(0,0,0,.45);
-  }
+/* ════════════════════════════════════════════════
+   登录页
+════════════════════════════════════════════════ */
+#login-overlay{position:fixed;inset:0;z-index:9999;background:var(--login-bg);display:flex;align-items:center;justify-content:center;}
+#login-overlay.hidden{display:none;}
+.login-card{width:400px;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:44px 40px 36px;box-shadow:var(--shadow),0 0 80px rgba(88,166,255,.05);}
+.login-logo{text-align:center;margin-bottom:28px;}
+.login-logo .licon{width:56px;height:56px;background:linear-gradient(135deg,#1c3a6e,#1a6e3a);border-radius:14px;display:inline-flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:12px;}
+.login-logo h1{font-size:20px;font-weight:700;letter-spacing:.02em;}
+.login-logo p{font-size:12px;color:var(--text2);margin-top:4px;}
+.lf{margin-bottom:14px;}
+.lf label{display:block;font-size:11px;font-weight:700;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em;}
+.lf input{width:100%;padding:10px 13px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;outline:none;transition:border-color .2s;}
+.lf input:focus{border-color:var(--accent);}
+.login-btn{width:100%;padding:11px;background:var(--accent);border:none;border-radius:8px;color:#fff;font-size:15px;font-weight:600;cursor:pointer;margin-top:6px;transition:opacity .2s,transform .1s;}
+.login-btn:hover{opacity:.88;} .login-btn:active{transform:scale(.98);}
+.login-err{background:rgba(247,129,102,.1);border:1px solid rgba(247,129,102,.3);border-radius:7px;padding:8px 11px;font-size:13px;color:var(--accent3);margin-top:10px;display:none;}
+.login-err.show{display:block;}
+.theme-switcher-login{display:flex;justify-content:center;gap:8px;margin-top:18px;}
+.tsb{background:transparent;border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:11px;color:var(--text2);cursor:pointer;transition:all .2s;}
+.tsb:hover,.tsb.active{border-color:var(--accent);color:var(--accent);}
 
-  html, body {
-    height: 100%;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', sans-serif;
-    background: var(--bg);
-    color: var(--text);
-  }
+/* ════════════════════════════════════════════════
+   主布局
+════════════════════════════════════════════════ */
+#app{display:none;flex-direction:column;min-height:100vh;} #app.visible{display:flex;}
 
-  /* ─────────────── 登录遮罩 ─────────────── */
-  #login-overlay {
-    position: fixed; inset: 0; z-index: 9999;
-    background: radial-gradient(ellipse at 60% 40%, #0d1b2a 0%, #070c14 100%);
-    display: flex; align-items: center; justify-content: center;
-  }
-  #login-overlay.hidden { display: none; }
+/* ── 顶栏 ── */
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;gap:12px;}
+.h-left{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.h-logo{width:32px;height:32px;background:linear-gradient(135deg,#1c3a6e,#1a6e3a);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;}
+.h-title{font-size:15px;font-weight:700;}
+.h-sub{font-size:11px;color:var(--text2);}
+.h-nav{display:flex;gap:2px;flex:1;justify-content:center;}
+.nav-btn{padding:5px 14px;background:transparent;border:none;border-radius:7px;color:var(--text2);font-size:13px;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.nav-btn:hover{background:var(--surface2);color:var(--text);}
+.nav-btn.active{background:rgba(88,166,255,.12);color:var(--accent);}
+.h-right{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.user-chip{display:flex;align-items:center;gap:7px;padding:4px 10px 4px 6px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;cursor:pointer;transition:border-color .2s;position:relative;}
+.user-chip:hover{border-color:var(--accent);}
+.u-avatar{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;}
+.u-name{font-size:12px;color:var(--text2);}
+.u-role{font-size:10px;color:var(--accent4);}
+/* 用户下拉 */
+.user-dropdown{position:absolute;top:calc(100% + 8px);right:0;background:var(--surface);border:1px solid var(--border);border-radius:10px;min-width:150px;box-shadow:var(--shadow);display:none;z-index:300;}
+.user-dropdown.show{display:block;}
+.ud-item{padding:9px 14px;font-size:13px;color:var(--text2);cursor:pointer;transition:background .15s;display:flex;align-items:center;gap:8px;border-radius:8px;margin:3px;}
+.ud-item:hover{background:var(--surface2);color:var(--text);}
+.ud-divider{height:1px;background:var(--border);margin:3px 0;}
 
-  .login-card {
-    width: 400px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 18px;
-    padding: 48px 40px 40px;
-    box-shadow: var(--shadow), 0 0 80px rgba(88,166,255,.06);
-  }
+/* ── 侧边栏（管理面板） ── */
+.sidebar-overlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.5);display:none;}
+.sidebar-overlay.show{display:block;}
+.sidebar{position:fixed;right:0;top:0;bottom:0;width:480px;max-width:95vw;background:var(--surface);border-left:1px solid var(--border);z-index:301;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .3s cubic-bezier(.22,.68,0,1.2);}
+.sidebar.show{transform:none;}
+.sb-header{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.sb-header h3{font-size:15px;font-weight:700;}
+.sb-close{background:transparent;border:none;color:var(--text2);font-size:20px;cursor:pointer;padding:2px 6px;border-radius:5px;}
+.sb-close:hover{color:var(--text);}
+.sb-body{flex:1;overflow-y:auto;padding:16px 20px;}
+.sb-section{margin-bottom:24px;}
+.sb-section-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;}
 
-  .login-logo {
-    text-align: center;
-    margin-bottom: 32px;
-  }
-  .login-logo .icon {
-    width: 60px; height: 60px;
-    background: linear-gradient(135deg, #1c3a6e, #1a6e3a);
-    border-radius: 16px;
-    display: inline-flex; align-items: center; justify-content: center;
-    font-size: 28px;
-    margin-bottom: 14px;
-  }
-  .login-logo h1 {
-    font-size: 22px; font-weight: 700; color: var(--text);
-    letter-spacing: .02em;
-  }
-  .login-logo p { font-size: 13px; color: var(--text2); margin-top: 4px; }
+/* 用户列表 */
+.user-row{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;}
+.ur-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.ur-info{display:flex;align-items:center;gap:9px;}
+.ur-actions{display:flex;gap:6px;}
+.icon-btn{background:transparent;border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:11px;color:var(--text2);cursor:pointer;transition:all .15s;}
+.icon-btn:hover{border-color:var(--accent);color:var(--accent);}
+.icon-btn.danger:hover{border-color:var(--accent3);color:var(--accent3);}
+.perm-grid{display:flex;flex-wrap:wrap;gap:6px;}
+.perm-chip{font-size:11px;padding:2px 9px;border-radius:12px;cursor:pointer;transition:all .15s;user-select:none;border:1px solid var(--border);color:var(--text2);}
+.perm-chip.on{background:rgba(88,166,255,.15);border-color:rgba(88,166,255,.4);color:var(--accent);}
+/* 添加用户表单 */
+.add-user-form{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;}
+.form-row{display:flex;gap:8px;margin-bottom:8px;}
+.form-row input,.form-row select{flex:1;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:13px;outline:none;}
+.form-row input:focus,.form-row select:focus{border-color:var(--accent);}
+.form-actions{display:flex;gap:8px;}
+.btn-primary{padding:7px 16px;background:var(--accent);border:none;border-radius:7px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s;}
+.btn-primary:hover{opacity:.85;}
+.btn-secondary{padding:7px 14px;background:transparent;border:1px solid var(--border);border-radius:7px;color:var(--text2);font-size:13px;cursor:pointer;transition:all .15s;}
+.btn-secondary:hover{border-color:var(--accent);color:var(--accent);}
 
-  .login-field { margin-bottom: 16px; }
-  .login-field label {
-    display: block; font-size: 12px; font-weight: 600;
-    color: var(--text2); margin-bottom: 6px; text-transform: uppercase; letter-spacing: .06em;
-  }
-  .login-field input {
-    width: 100%; padding: 10px 14px;
-    background: var(--bg); border: 1px solid var(--border);
-    border-radius: 8px; color: var(--text); font-size: 14px;
-    outline: none; transition: border-color .2s;
-  }
-  .login-field input:focus { border-color: var(--accent); }
+/* 主题面板 */
+.theme-panel{display:flex;gap:8px;flex-wrap:wrap;}
+.theme-btn{padding:7px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-size:12px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px;}
+.theme-btn:hover,.theme-btn.active{border-color:var(--accent);color:var(--text);}
 
-  .login-btn {
-    width: 100%; padding: 11px;
-    background: var(--accent); border: none; border-radius: 8px;
-    color: #fff; font-size: 15px; font-weight: 600;
-    cursor: pointer; transition: opacity .2s, transform .1s;
-    margin-top: 8px;
-  }
-  .login-btn:hover { opacity: .88; }
-  .login-btn:active { transform: scale(.98); }
+/* ── 主内容 ── */
+main{flex:1;padding:28px 24px;max-width:1400px;margin:0 auto;width:100%;}
+.page-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;}
+.page-hd h2{font-size:22px;font-weight:700;}
+.page-hd-right{display:flex;align-items:center;gap:10px;}
 
-  .login-err {
-    background: rgba(247,129,102,.12); border: 1px solid rgba(247,129,102,.3);
-    border-radius: 8px; padding: 9px 12px;
-    font-size: 13px; color: var(--accent3);
-    margin-top: 12px; display: none;
-  }
-  .login-err.show { display: block; }
+/* 统计条 */
+.stats-bar{display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap;}
+.stat-chip{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 16px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);}
+.stat-chip strong{color:var(--text);font-size:16px;font-weight:700;}
 
-  /* ─────────────── 主布局 ─────────────── */
-  #app { display: none; flex-direction: column; min-height: 100vh; }
-  #app.visible { display: flex; }
+/* 视图切换 */
+.view-switcher{display:flex;gap:2px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:3px;}
+.view-btn{background:transparent;border:none;color:var(--text2);padding:5px 10px;border-radius:6px;cursor:pointer;transition:all .15s;font-size:14px;}
+.view-btn.active{background:var(--surface);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.2);}
 
-  /* 顶部导航 */
-  header {
-    background: var(--surface);
-    border-bottom: 1px solid var(--border);
-    padding: 0 32px;
-    height: 60px;
-    display: flex; align-items: center; justify-content: space-between;
-    position: sticky; top: 0; z-index: 100;
-  }
-  .header-left { display: flex; align-items: center; gap: 12px; }
-  .header-logo {
-    width: 34px; height: 34px;
-    background: linear-gradient(135deg, #1c3a6e, #1a6e3a);
-    border-radius: 8px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 16px;
-  }
-  .header-title { font-size: 16px; font-weight: 700; color: var(--text); }
-  .header-sub { font-size: 12px; color: var(--text2); }
+/* ── 卡片视图 ── */
+.projects-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;}
+.project-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;transition:border-color .2s,transform .2s,box-shadow .2s;position:relative;overflow:hidden;cursor:default;}
+.project-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--card-color,var(--accent));opacity:0;transition:opacity .2s;}
+.project-card:hover{border-color:var(--card-color,var(--accent));transform:translateY(-2px);box-shadow:0 10px 36px rgba(0,0,0,.35);}
+.project-card:hover::before{opacity:1;}
+.card-hd{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;}
+.card-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.card-badges{display:flex;gap:5px;flex-wrap:wrap;align-items:center;}
+.badge{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:600;letter-spacing:.03em;}
+.badge-live{background:rgba(63,185,80,.15);color:var(--accent2);border:1px solid rgba(63,185,80,.3);}
+.badge-private{background:rgba(247,129,102,.1);color:var(--accent3);border:1px solid rgba(247,129,102,.3);}
+.badge-public{background:rgba(88,166,255,.1);color:var(--accent);border:1px solid rgba(88,166,255,.3);}
+.badge-admin{background:rgba(210,153,34,.12);color:var(--accent4);border:1px solid rgba(210,153,34,.3);}
+.card-title{font-size:15px;font-weight:700;margin:8px 0 5px;}
+.card-desc{font-size:12px;color:var(--text2);line-height:1.6;min-height:36px;}
+.card-footer{margin-top:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.visit-btn{flex:1;min-width:100px;padding:8px 14px;border:none;border-radius:7px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:5px;transition:opacity .2s;background:var(--card-color,var(--accent));}
+.visit-btn:hover{opacity:.84;}
+.visit-btn.locked{background:var(--surface2);border:1px solid var(--border);color:var(--text2);}
+.gh-btn{padding:8px 10px;background:transparent;border:1px solid var(--border);border-radius:7px;color:var(--text2);font-size:11px;text-decoration:none;display:inline-flex;align-items:center;gap:4px;transition:border-color .15s,color .15s;white-space:nowrap;}
+.gh-btn:hover{border-color:var(--accent);color:var(--accent);}
 
-  .header-right { display: flex; align-items: center; gap: 16px; }
-  .user-badge {
-    display: flex; align-items: center; gap: 8px;
-    font-size: 13px; color: var(--text2);
-  }
-  .user-avatar {
-    width: 30px; height: 30px;
-    background: linear-gradient(135deg, #2563eb, #16a34a);
-    border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 12px; font-weight: 700; color: #fff;
-  }
-  .logout-btn {
-    padding: 5px 12px;
-    background: transparent; border: 1px solid var(--border);
-    border-radius: 6px; color: var(--text2); font-size: 12px;
-    cursor: pointer; transition: all .2s;
-  }
-  .logout-btn:hover { border-color: var(--accent3); color: var(--accent3); }
+/* 访问控制开关 */
+.auth-toggle{display:flex;align-items:center;gap:6px;}
+.toggle-label{font-size:10px;color:var(--text3);white-space:nowrap;}
+.toggle-sw{position:relative;width:34px;height:19px;cursor:pointer;display:inline-block;}
+.toggle-sw input{opacity:0;width:0;height:0;position:absolute;}
+.toggle-track{position:absolute;inset:0;background:var(--border);border-radius:19px;transition:background .2s;}
+.toggle-sw input:checked + .toggle-track{background:var(--accent2);}
+.toggle-thumb{position:absolute;top:3px;left:3px;width:13px;height:13px;background:#fff;border-radius:50%;transition:transform .2s;pointer-events:none;}
+.toggle-sw input:checked ~ .toggle-thumb{transform:translateX(15px);}
 
-  /* 主体内容 */
-  main { flex: 1; padding: 40px 32px; max-width: 1280px; margin: 0 auto; width: 100%; }
+/* ── 列表视图 ── */
+.projects-list{display:flex;flex-direction:column;gap:8px;}
+.project-list-row{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px;display:flex;align-items:center;gap:14px;transition:border-color .2s;}
+.project-list-row:hover{border-color:var(--card-color,var(--accent));}
+.lr-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.lr-info{flex:1;min-width:0;}
+.lr-name{font-size:14px;font-weight:600;}
+.lr-desc{font-size:12px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.lr-actions{display:flex;align-items:center;gap:8px;flex-shrink:0;}
 
-  .page-header { margin-bottom: 36px; }
-  .page-header h2 { font-size: 26px; font-weight: 700; }
-  .page-header p { font-size: 14px; color: var(--text2); margin-top: 6px; }
+/* ── 表格视图 ── */
+.projects-table{width:100%;border-collapse:collapse;}
+.projects-table th{text-align:left;padding:10px 14px;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border);background:var(--surface);}
+.projects-table td{padding:12px 14px;border-bottom:1px solid var(--border2);font-size:13px;vertical-align:middle;}
+.projects-table tr:last-child td{border-bottom:none;}
+.projects-table tr:hover td{background:var(--surface2);}
+.t-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
 
-  /* 统计条 */
-  .stats-bar {
-    display: flex; gap: 16px; margin-bottom: 32px; flex-wrap: wrap;
-  }
-  .stat-chip {
-    background: var(--surface); border: 1px solid var(--border);
-    border-radius: 8px; padding: 10px 18px;
-    display: flex; align-items: center; gap: 8px;
-    font-size: 13px; color: var(--text2);
-  }
-  .stat-chip strong { color: var(--text); font-size: 18px; }
+/* ── 无权限提示 ── */
+.no-access{text-align:center;padding:60px 20px;color:var(--text2);}
+.no-access .na-icon{font-size:40px;margin-bottom:12px;}
 
-  /* 项目网格 */
-  .projects-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-    gap: 20px;
-  }
+/* footer */
+footer{text-align:center;padding:16px;font-size:11px;color:var(--text3);border-top:1px solid var(--border);}
+footer a{color:var(--text3);text-decoration:none;}
 
-  /* 项目卡片 */
-  .project-card {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 24px;
-    transition: border-color .2s, transform .2s, box-shadow .2s;
-    position: relative;
-    overflow: hidden;
-  }
-  .project-card::before {
-    content: '';
-    position: absolute; top: 0; left: 0; right: 0; height: 3px;
-    background: var(--card-accent, var(--accent));
-    opacity: 0; transition: opacity .2s;
-  }
-  .project-card:hover {
-    border-color: var(--card-accent, var(--accent));
-    transform: translateY(-2px);
-    box-shadow: 0 12px 40px rgba(0,0,0,.4);
-  }
-  .project-card:hover::before { opacity: 1; }
-
-  .card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 12px; }
-  .card-icon {
-    width: 44px; height: 44px;
-    border-radius: 10px;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 22px;
-    background: var(--icon-bg, rgba(88,166,255,.12));
-    flex-shrink: 0;
-  }
-  .card-badges { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
-  .badge {
-    font-size: 11px; padding: 2px 8px; border-radius: 20px;
-    font-weight: 600; letter-spacing: .03em;
-  }
-  .badge-live { background: rgba(63,185,80,.15); color: #3fb950; border: 1px solid rgba(63,185,80,.3); }
-  .badge-private { background: rgba(247,129,102,.12); color: #f78166; border: 1px solid rgba(247,129,102,.3); }
-  .badge-public { background: rgba(88,166,255,.12); color: #58a6ff; border: 1px solid rgba(88,166,255,.3); }
-  .badge-noauth { background: rgba(139,148,158,.1); color: #8b949e; border: 1px solid rgba(139,148,158,.2); }
-
-  .card-title { font-size: 17px; font-weight: 700; margin: 10px 0 6px; }
-  .card-desc { font-size: 13px; color: var(--text2); line-height: 1.6; min-height: 40px; }
-
-  .card-footer {
-    margin-top: 18px;
-    display: flex; align-items: center; gap: 10px;
-    flex-wrap: wrap;
-  }
-
-  .visit-btn {
-    flex: 1; min-width: 120px;
-    padding: 9px 16px;
-    background: var(--card-accent, var(--accent));
-    border: none; border-radius: 8px;
-    color: #fff; font-size: 13px; font-weight: 600;
-    cursor: pointer; text-decoration: none;
-    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-    transition: opacity .2s;
-  }
-  .visit-btn:hover { opacity: .85; }
-  .visit-btn.locked {
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    color: var(--text2);
-  }
-
-  /* 访问控制开关 */
-  .auth-toggle { display: flex; align-items: center; gap: 8px; }
-  .toggle-label { font-size: 11px; color: var(--text3); white-space: nowrap; }
-  .toggle-switch {
-    position: relative; width: 36px; height: 20px; cursor: pointer;
-  }
-  .toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
-  .toggle-track {
-    position: absolute; inset: 0;
-    background: var(--border); border-radius: 20px;
-    transition: background .2s;
-  }
-  .toggle-switch input:checked + .toggle-track { background: var(--accent2); }
-  .toggle-thumb {
-    position: absolute;
-    top: 3px; left: 3px;
-    width: 14px; height: 14px;
-    background: #fff; border-radius: 50%;
-    transition: transform .2s;
-  }
-  .toggle-switch input:checked ~ .toggle-thumb { transform: translateX(16px); }
-
-  /* 管理面板提示 */
-  .admin-hint {
-    margin-top: 40px;
-    background: rgba(88,166,255,.06);
-    border: 1px dashed rgba(88,166,255,.2);
-    border-radius: 10px; padding: 16px 20px;
-    font-size: 13px; color: var(--text2); line-height: 1.7;
-  }
-  .admin-hint strong { color: var(--accent); }
-
-  /* footer */
-  footer {
-    text-align: center; padding: 20px;
-    font-size: 12px; color: var(--text3);
-    border-top: 1px solid var(--border);
-  }
-
-  /* 响应式 */
-  @media (max-width: 600px) {
-    header { padding: 0 16px; }
-    main { padding: 24px 16px; }
-    .header-sub { display: none; }
-  }
+/* 响应式 */
+@media(max-width:640px){
+  header{padding:0 12px;}.h-nav{display:none;} main{padding:16px;}
+  .projects-grid{grid-template-columns:1fr;} .sidebar{width:100%;max-width:100vw;}
+}
 </style>
 </head>
 <body>
 
-<!-- ═══════════════ 登录遮罩 ═══════════════ -->
+<!-- ═══════════ 登录 ═══════════ -->
 <div id="login-overlay">
   <div class="login-card">
     <div class="login-logo">
-      <div class="icon">🏠</div>
+      <div class="licon">🏠</div>
       <h1>项目门户</h1>
       <p>Projects Portal · SongHW</p>
     </div>
-    <div class="login-field">
-      <label>用户名</label>
-      <input type="text" id="inp-user" placeholder="请输入用户名" autocomplete="username" />
-    </div>
-    <div class="login-field">
-      <label>密码</label>
-      <input type="password" id="inp-pass" placeholder="请输入密码" autocomplete="current-password" />
-    </div>
+    <div class="lf"><label>用户名</label><input type="text" id="l-user" placeholder="请输入用户名" autocomplete="username"/></div>
+    <div class="lf"><label>密码</label><input type="password" id="l-pass" placeholder="请输入密码" autocomplete="current-password"/></div>
     <button class="login-btn" onclick="doLogin()">登 录</button>
-    <div class="login-err" id="login-err"></div>
+    <div class="login-err" id="l-err"></div>
+    <div class="theme-switcher-login">
+      <button class="tsb active" onclick="setTheme('dark',this)">🌑 暗黑</button>
+      <button class="tsb" onclick="setTheme('light',this)">☀️ 亮白</button>
+      <button class="tsb" onclick="setTheme('corporate',this)">🔵 商务</button>
+    </div>
   </div>
 </div>
 
-<!-- ═══════════════ 主应用 ═══════════════ -->
+<!-- ═══════════ 管理侧边栏 ═══════════ -->
+<div class="sidebar-overlay" id="sb-overlay" onclick="closeSidebar()"></div>
+<div class="sidebar" id="sidebar">
+  <div class="sb-header">
+    <h3 id="sb-title">⚙️ 系统管理</h3>
+    <button class="sb-close" onclick="closeSidebar()">✕</button>
+  </div>
+  <div class="sb-body" id="sb-body"><!-- 动态渲染 --></div>
+</div>
+
+<!-- ═══════════ 主应用 ═══════════ -->
 <div id="app">
   <header>
-    <div class="header-left">
-      <div class="header-logo">🏠</div>
-      <div>
-        <div class="header-title">项目门户</div>
-        <div class="header-sub">Projects Portal</div>
-      </div>
+    <div class="h-left">
+      <div class="h-logo">🏠</div>
+      <div><div class="h-title">项目门户</div><div class="h-sub">Projects Portal</div></div>
     </div>
-    <div class="header-right">
-      <div class="user-badge">
-        <div class="user-avatar" id="user-avatar">S</div>
-        <span id="user-name">songhw</span>
+    <div class="h-nav">
+      <button class="nav-btn active" onclick="switchTab('projects',this)">📦 项目列表</button>
+      <button class="nav-btn" id="btn-admin" onclick="switchTab('admin',this)" style="display:none">👤 用户管理</button>
+    </div>
+    <div class="h-right">
+      <!-- 主题切换 -->
+      <div style="display:flex;gap:3px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:2px;">
+        <button class="view-btn active" onclick="setTheme('dark',this)" title="暗黑">🌑</button>
+        <button class="view-btn" onclick="setTheme('light',this)" title="亮白">☀️</button>
+        <button class="view-btn" onclick="setTheme('corporate',this)" title="商务">🔵</button>
       </div>
-      <button class="logout-btn" onclick="doLogout()">退出登录</button>
+      <div class="user-chip" onclick="toggleUserDropdown()">
+        <div class="u-avatar" id="u-avatar" style="background:linear-gradient(135deg,#2563eb,#16a34a)">S</div>
+        <div><div class="u-name" id="u-name">songhw</div><div class="u-role" id="u-role">管理员</div></div>
+        <span style="color:var(--text3);font-size:10px;">▾</span>
+        <div class="user-dropdown" id="user-dropdown">
+          <div class="ud-item" onclick="openSidebar('profile')">👤 个人信息</div>
+          <div class="ud-item" onclick="openSidebar('changepwd')">🔑 修改密码</div>
+          <div class="ud-divider"></div>
+          <div class="ud-item" onclick="doLogout()">🚪 退出登录</div>
+        </div>
+      </div>
     </div>
   </header>
 
   <main>
-    <div class="page-header">
-      <h2>📦 我的项目清单</h2>
-      <p>所有 GitHub 托管项目的统一入口，可控制子项目的访问权限</p>
+    <!-- 项目列表页 -->
+    <div id="tab-projects">
+      <div class="page-hd">
+        <h2 id="page-title">📦 我的项目清单</h2>
+        <div class="page-hd-right">
+          <div class="view-switcher">
+            <button class="view-btn active" onclick="setView('grid',this)" title="卡片视图">⊞</button>
+            <button class="view-btn" onclick="setView('list',this)" title="列表视图">☰</button>
+            <button class="view-btn" onclick="setView('table',this)" title="表格视图">⊟</button>
+          </div>
+          <button class="btn-secondary" onclick="openSidebar('authctrl')" id="btn-authctrl" style="display:none">🛡 访问控制</button>
+        </div>
+      </div>
+      <div class="stats-bar" id="stats-bar"></div>
+      <div id="projects-container"></div>
     </div>
 
-    <div class="stats-bar">
-      <div class="stat-chip"><strong id="total-count">0</strong> 个项目</div>
-      <div class="stat-chip"><strong id="live-count">0</strong> 个已上线</div>
-      <div class="stat-chip"><strong id="auth-count">0</strong> 个需要登录</div>
-    </div>
-
-    <div class="projects-grid" id="projects-grid">
-      <!-- 由 JS 动态渲染 -->
-    </div>
-
-    <div class="admin-hint" id="admin-hint">
-      <strong>管理员提示：</strong>右下角的切换开关可控制是否需要登录才能访问子项目。
-      开启后访问子项目将自动携带授权令牌（当前会话有效）。
-      此设置保存在本地，刷新页面后保持。
+    <!-- 用户管理页（管理员专属） -->
+    <div id="tab-admin" style="display:none">
+      <div class="page-hd"><h2>👤 用户管理</h2></div>
+      <div id="admin-panel"><!-- 动态渲染 --></div>
     </div>
   </main>
 
-  <footer>
-    &copy; 2026 SongHW · Projects Portal &nbsp;·&nbsp;
-    <a href="https://github.com/songhonglu" style="color:var(--text3);text-decoration:none;" target="_blank">GitHub</a>
-  </footer>
+  <footer>&copy; 2026 SongHW · Projects Portal &nbsp;·&nbsp; <a href="https://github.com/songhonglu" target="_blank">GitHub</a></footer>
 </div>
 
 <script>
-/* ══════════════════════════════════════════
-   ① 认证系统
-══════════════════════════════════════════ */
-const AUTH_KEY   = 'portal_auth';
-const AUTH_TOKEN = 'portal_v1_songhw_2026';
+/* ══════════════════════════════════════════════════════
+   ① 数据定义
+══════════════════════════════════════════════════════ */
 
-// SHA-256 哈希（用户名:密码）- 不明文存储凭证
+// 项目列表
+const PROJECTS = [
+  { id:'contractmap',       name:'合同数字化平台集成全景图', desc:'浙江省机电集团合同数字化平台·系统集成全景图 v2.0，可视化呈现各系统集成关系与数据流转。', icon:'🗺️', iconBg:'rgba(88,166,255,.15)', color:'#58a6ff', github:'https://github.com/songhonglu/contractmap',       live:'https://songhonglu.github.io/contractmap/',       hasPages:true,  defaultAuth:true  },
+  { id:'huarongdao-game',   name:'数字华容道',               desc:'经典数字华容道益智解谜游戏，支持多种难度关卡，纯前端实现，流畅体验。',                       icon:'🎮', iconBg:'rgba(63,185,80,.15)',  color:'#3fb950', github:'https://github.com/songhonglu/huarongdao-game', live:'https://songhonglu.github.io/huarongdao-game/', hasPages:true,  defaultAuth:false },
+  { id:'amberk',            name:'Amberk',                   desc:'私有代码仓库，包含个人项目和实验性代码，暂未开放 GitHub Pages 访问。',                           icon:'🔒', iconBg:'rgba(247,129,102,.12)',color:'#f78166', github:'https://github.com/songhonglu/amberk',           live:null,                                              hasPages:false, defaultAuth:true  },
+  { id:'number-huarongdao', name:'数字华容道（早期版本）',   desc:'数字华容道游戏的早期版本，后续由 huarongdao-game 仓库迭代替代，暂未启用 Pages。',               icon:'🧩', iconBg:'rgba(210,153,34,.15)', color:'#d29922', github:'https://github.com/songhonglu/number-huarongdao',live:null,                                              hasPages:false, defaultAuth:false },
+];
+
+/* ══════════════════════════════════════════════════════
+   ② 用户体系（localStorage 持久化）
+   用户数据结构：{ id, username, displayName, passwordHash, role, projectPerms, avatar }
+   role: 'admin' | 'user'
+   projectPerms: ['contractmap','huarongdao-game',...]  (null = 全部)
+══════════════════════════════════════════════════════ */
+const DB_KEY  = 'portal_db_v2';
+const SES_KEY = 'portal_session';
+const TOKEN   = 'portal_v1_songhw_2026';   // 跨域传递用的固定 token
+
+function loadDB() {
+  try { return JSON.parse(localStorage.getItem(DB_KEY) || 'null'); } catch { return null; }
+}
+function saveDB(db) { localStorage.setItem(DB_KEY, JSON.stringify(db)); }
+
+// 初始化数据库
+async function initDB() {
+  let db = loadDB();
+  if (!db) {
+    const adminHash = await sha256('songhw:Seeyon@JD');
+    db = {
+      users: [{
+        id: 'user_admin',
+        username: 'songhw',
+        displayName: '宋老师',
+        passwordHash: adminHash,
+        role: 'admin',
+        projectPerms: null,   // null = 全部权限
+        avatar: '#2563eb',
+      }],
+      authCtrl: { contractmap: true, 'huarongdao-game': false, amberk: true, 'number-huarongdao': false },
+      theme: 'dark',
+    };
+    saveDB(db);
+  }
+  return db;
+}
+
+function getDB() { return loadDB() || { users:[], authCtrl:{}, theme:'dark' }; }
+
 async function sha256(msg) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(msg));
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
 }
 
-// 合法凭证的哈希（预计算写死，运行时不需要暴露明文密码）
-// sha256('songhw:Seeyon@JD') = 计算得到
-const VALID_HASH = '8b94c2f44c6e01c74c9e90c69aa9b3a3b4e1dd0e77e8d01a27f0c2d0c9b4f8e2';
-// 注：上面是占位符，实际在登录时动态比较
+/* ══════════════════════════════════════════════════════
+   ③ 认证
+══════════════════════════════════════════════════════ */
+let currentUser = null;
 
 async function doLogin() {
-  const user = document.getElementById('inp-user').value.trim();
-  const pass = document.getElementById('inp-pass').value;
-  const errEl = document.getElementById('login-err');
+  const username = document.getElementById('l-user').value.trim();
+  const password = document.getElementById('l-pass').value;
+  if (!username || !password) { showLoginErr('请输入用户名和密码'); return; }
 
-  if (!user || !pass) { showErr('请输入用户名和密码'); return; }
+  await initDB();  // 确保数据库已初始化
+  const db = getDB();
+  const hash = await sha256(username + ':' + password);
+  const user = db.users.find(u => u.username === username && u.passwordHash === hash);
 
-  const hash = await sha256(user + ':' + pass);
-  // 校验：用户名 songhw，密码 Seeyon@JD
-  const expectedHash = await sha256('songhw:Seeyon@JD');
-
-  if (hash === expectedHash) {
-    sessionStorage.setItem(AUTH_KEY, AUTH_TOKEN);
-    sessionStorage.setItem('portal_user', user);
-    showApp();
+  if (user) {
+    currentUser = user;
+    // sessionStorage 存储会话（不使用 token 暴露在 URL）
+    sessionStorage.setItem(SES_KEY, JSON.stringify({ uid: user.id, token: TOKEN, ts: Date.now() }));
+    showApp(user);
   } else {
-    showErr('用户名或密码错误，请重试');
+    showLoginErr('用户名或密码错误，请重试');
+    document.getElementById('l-pass').value = '';
   }
 }
 
-function showErr(msg) {
-  const el = document.getElementById('login-err');
-  el.textContent = msg; el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), 3000);
-}
-
 function doLogout() {
-  sessionStorage.removeItem(AUTH_KEY);
-  sessionStorage.removeItem('portal_user');
+  currentUser = null;
+  sessionStorage.removeItem(SES_KEY);
   document.getElementById('app').classList.remove('visible');
   document.getElementById('login-overlay').classList.remove('hidden');
-  document.getElementById('inp-pass').value = '';
+  document.getElementById('l-pass').value = '';
+  document.getElementById('l-user').value = '';
+  closeUserDropdown();
 }
 
-function showApp() {
-  document.getElementById('login-overlay').classList.add('hidden');
-  const app = document.getElementById('app');
-  app.classList.add('visible');
-  const uname = sessionStorage.getItem('portal_user') || 'songhw';
-  document.getElementById('user-name').textContent = uname;
-  document.getElementById('user-avatar').textContent = uname[0].toUpperCase();
-  renderProjects();
-}
-
-/* ══════════════════════════════════════════
-   ② 项目数据
-══════════════════════════════════════════ */
-const PROJECTS = [
-  {
-    id: 'contractmap',
-    name: '合同数字化平台集成全景图',
-    desc: '浙江省机电集团合同数字化平台·系统集成全景图 v2.0，可视化呈现各系统集成关系与数据流转。',
-    icon: '🗺️',
-    iconBg: 'rgba(88,166,255,.15)',
-    accent: '#58a6ff',
-    github: 'https://github.com/songhonglu/contractmap',
-    live: 'https://songhonglu.github.io/contractmap/',
-    hasPages: true,
-    // 子项目本身现在不再有独立登录（已去除），由门户统一控制
-    subAuthEnabled: true,   // 默认：需要通过门户登录才能访问
-  },
-  {
-    id: 'huarongdao-game',
-    name: '数字华容道',
-    desc: '经典数字华容道益智解谜游戏，支持多种难度关卡，纯前端实现，流畅体验。',
-    icon: '🎮',
-    iconBg: 'rgba(63,185,80,.15)',
-    accent: '#3fb950',
-    github: 'https://github.com/songhonglu/huarongdao-game',
-    live: 'https://songhonglu.github.io/huarongdao-game/',
-    hasPages: true,
-    subAuthEnabled: false,  // 默认：无需登录，直接访问
-  },
-  {
-    id: 'amberk',
-    name: 'Amberk',
-    desc: '私有代码仓库，包含个人项目和实验性代码，暂未开放 GitHub Pages 访问。',
-    icon: '🔒',
-    iconBg: 'rgba(247,129,102,.12)',
-    accent: '#f78166',
-    github: 'https://github.com/songhonglu/amberk',
-    live: null,
-    hasPages: false,
-    subAuthEnabled: true,
-  },
-  {
-    id: 'number-huarongdao',
-    name: '数字华容道（早期版本）',
-    desc: '数字华容道游戏的早期版本，后续由 huarongdao-game 仓库迭代替代，暂未启用 Pages。',
-    icon: '🧩',
-    iconBg: 'rgba(210,153,34,.15)',
-    accent: '#d29922',
-    github: 'https://github.com/songhonglu/number-huarongdao',
-    live: null,
-    hasPages: false,
-    subAuthEnabled: false,
-  },
-];
-
-/* ══════════════════════════════════════════
-   ③ 访问控制状态（localStorage 持久化）
-══════════════════════════════════════════ */
-const AUTH_CTRL_KEY = 'portal_auth_ctrl';
-
-function loadAuthCtrl() {
+function restoreSession() {
   try {
-    return JSON.parse(localStorage.getItem(AUTH_CTRL_KEY) || '{}');
-  } catch { return {}; }
+    const ses = JSON.parse(sessionStorage.getItem(SES_KEY) || 'null');
+    if (!ses || ses.token !== TOKEN) return null;
+    const db = getDB();
+    return db.users.find(u => u.id === ses.uid) || null;
+  } catch { return null; }
 }
 
-function saveAuthCtrl(ctrl) {
-  localStorage.setItem(AUTH_CTRL_KEY, JSON.stringify(ctrl));
+function showLoginErr(msg) {
+  const el = document.getElementById('l-err');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3500);
 }
 
-function isSubAuthEnabled(id) {
-  const ctrl = loadAuthCtrl();
-  if (id in ctrl) return ctrl[id];
-  const proj = PROJECTS.find(p => p.id === id);
-  return proj ? proj.subAuthEnabled : false;
+/* ══════════════════════════════════════════════════════
+   ④ 主题
+══════════════════════════════════════════════════════ */
+function setTheme(t, btn) {
+  document.documentElement.setAttribute('data-theme', t);
+  // 更新按钮状态（登录页和主页都有主题按钮）
+  document.querySelectorAll('.tsb,.view-btn[onclick*="setTheme"]').forEach(b => {
+    b.classList.toggle('active', b === btn || (b.getAttribute('onclick')||'').includes(`'${t}'`));
+  });
+  // 持久化
+  const db = getDB(); db.theme = t; saveDB(db);
 }
 
-function setSubAuth(id, enabled) {
-  const ctrl = loadAuthCtrl();
-  ctrl[id] = enabled;
-  saveAuthCtrl(ctrl);
-  updateStats();
+function applyStoredTheme() {
+  const db = getDB();
+  const t = db.theme || 'dark';
+  document.documentElement.setAttribute('data-theme', t);
 }
 
-/* ══════════════════════════════════════════
-   ④ 访问子项目（携带 token）
-══════════════════════════════════════════ */
-function visitProject(proj) {
-  if (!proj.live) return;
-  const needAuth = isSubAuthEnabled(proj.id);
+/* ══════════════════════════════════════════════════════
+   ⑤ 访问子项目（安全跳转：不在 URL 中暴露 token）
+══════════════════════════════════════════════════════ */
+function visitProject(projId) {
+  const proj = PROJECTS.find(p => p.id === projId);
+  if (!proj || !proj.live) return;
+
+  const db = getDB();
+  const needAuth = (projId in db.authCtrl) ? db.authCtrl[projId] : proj.defaultAuth;
+
   if (needAuth) {
-    // 子项目通过 URL hash token 验证（子项目需配合检查）
-    const token = encodeURIComponent(AUTH_TOKEN);
-    window.open(proj.live + '#portal_token=' + token, '_blank');
+    // 安全跳转：把 token 写入目标域的 sessionStorage（同域名时有效），
+    // 不同域使用 postMessage + localStorage 广播机制
+    // GitHub Pages 下所有子项目与门户同属 songhonglu.github.io，
+    // 共享 sessionStorage 不跨 origin（不同路径 sessionStorage 隔离），
+    // 最优方案：用 localStorage 作为跨路径信标（同 origin 下共享）
+    try {
+      // 写入跨子项目授权标记（同 origin localStorage 共享）
+      localStorage.setItem('portal_auth_session', JSON.stringify({
+        token: TOKEN,
+        uid: currentUser.id,
+        username: currentUser.username,
+        ts: Date.now(),
+        ttl: 8 * 60 * 60 * 1000   // 8小时有效
+      }));
+    } catch(e) {}
+    window.open(proj.live, '_blank');
   } else {
     window.open(proj.live, '_blank');
   }
 }
 
-/* ══════════════════════════════════════════
-   ⑤ 渲染
-══════════════════════════════════════════ */
+/* ══════════════════════════════════════════════════════
+   ⑥ 视图与渲染
+══════════════════════════════════════════════════════ */
+let currentView = 'grid';
+
+function setView(v, btn) {
+  currentView = v;
+  document.querySelectorAll('.view-switcher .view-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderProjects();
+}
+
+function getUserProjects() {
+  if (!currentUser) return [];
+  if (currentUser.role === 'admin' || currentUser.projectPerms === null) return PROJECTS;
+  return PROJECTS.filter(p => (currentUser.projectPerms || []).includes(p.id));
+}
+
 function renderProjects() {
-  const grid = document.getElementById('projects-grid');
-  grid.innerHTML = '';
+  const container = document.getElementById('projects-container');
+  const projects = getUserProjects();
+  const db = getDB();
 
-  PROJECTS.forEach(proj => {
-    const authOn = isSubAuthEnabled(proj.id);
-    const canVisit = proj.hasPages && proj.live;
+  if (projects.length === 0) {
+    container.innerHTML = `<div class="no-access"><div class="na-icon">🔒</div><p>您没有任何项目的访问权限，请联系管理员</p></div>`;
+    return;
+  }
 
-    const card = document.createElement('div');
-    card.className = 'project-card';
-    card.style.setProperty('--card-accent', proj.accent);
+  if (currentView === 'grid') {
+    container.innerHTML = '';
+    const grid = document.createElement('div');
+    grid.className = 'projects-grid';
+    projects.forEach(proj => grid.appendChild(makeCard(proj, db)));
+    container.appendChild(grid);
+  } else if (currentView === 'list') {
+    container.innerHTML = '';
+    const list = document.createElement('div');
+    list.className = 'projects-list';
+    projects.forEach(proj => list.appendChild(makeListRow(proj, db)));
+    container.appendChild(list);
+  } else if (currentView === 'table') {
+    renderTable(projects, db, container);
+  }
 
-    card.innerHTML = `
-      <div class="card-header">
-        <div class="card-icon" style="background:${proj.iconBg}">${proj.icon}</div>
-        <div class="card-badges">
-          ${proj.hasPages ? '<span class="badge badge-live">● 已上线</span>' : ''}
-          ${authOn ? '<span class="badge badge-private">🔒 需登录</span>' : '<span class="badge badge-public">🌐 公开</span>'}
-        </div>
+  updateStats(projects, db);
+}
+
+function makeCard(proj, db) {
+  const authOn = (proj.id in db.authCtrl) ? db.authCtrl[proj.id] : proj.defaultAuth;
+  const canVisit = proj.hasPages && proj.live;
+  const isAdmin = currentUser && currentUser.role === 'admin';
+
+  const card = document.createElement('div');
+  card.className = 'project-card';
+  card.style.setProperty('--card-color', proj.color);
+
+  card.innerHTML = `
+    <div class="card-hd">
+      <div class="card-icon" style="background:${proj.iconBg}">${proj.icon}</div>
+      <div class="card-badges">
+        ${proj.hasPages ? '<span class="badge badge-live">● 已上线</span>' : ''}
+        ${authOn ? '<span class="badge badge-private">🔒 需认证</span>' : '<span class="badge badge-public">🌐 公开</span>'}
       </div>
-      <div class="card-title">${proj.name}</div>
-      <div class="card-desc">${proj.desc}</div>
-      <div class="card-footer">
-        ${canVisit
-          ? `<a class="visit-btn" style="background:${proj.accent}" onclick="visitProject(PROJECTS.find(p=>p.id==='${proj.id}'))">
-               🚀 访问项目
-             </a>`
-          : `<span class="visit-btn locked">⏳ 暂未上线</span>`
-        }
-        <a href="${proj.github}" target="_blank"
-           style="padding:9px 12px;background:transparent;border:1px solid var(--border);
-                  border-radius:8px;color:var(--text2);font-size:12px;text-decoration:none;
-                  transition:border-color .2s;display:inline-flex;align-items:center;gap:4px;"
-           onmouseover="this.style.borderColor='#58a6ff'"
-           onmouseout="this.style.borderColor='var(--border)'">
-          <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor">
-            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38
-              0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13
-              -.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66
-              .07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15
-              -.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27
-              .68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12
-              .51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48
-              0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
-          </svg>
-          GitHub
-        </a>
-        <div class="auth-toggle" title="控制访问此子项目是否需要通过门户登录">
+    </div>
+    <div class="card-title">${proj.name}</div>
+    <div class="card-desc">${proj.desc}</div>
+    <div class="card-footer">
+      ${canVisit
+        ? `<button class="visit-btn" style="background:${proj.color}" onclick="visitProject('${proj.id}')">🚀 访问项目</button>`
+        : `<span class="visit-btn locked">⏳ 暂未上线</span>`
+      }
+      <a class="gh-btn" href="${proj.github}" target="_blank">${ghIcon()} GitHub</a>
+      ${isAdmin ? `
+        <div class="auth-toggle" title="控制此项目是否需要门户认证后才能访问">
           <span class="toggle-label">访问控制</span>
-          <label class="toggle-switch">
-            <input type="checkbox" id="toggle-${proj.id}" ${authOn ? 'checked' : ''}
-              onchange="toggleAuth('${proj.id}', this.checked)">
+          <label class="toggle-sw">
+            <input type="checkbox" ${authOn?'checked':''} onchange="toggleAuth('${proj.id}',this.checked)">
             <div class="toggle-track"></div>
             <div class="toggle-thumb"></div>
           </label>
+        </div>` : ''}
+    </div>`;
+  return card;
+}
+
+function makeListRow(proj, db) {
+  const authOn = (proj.id in db.authCtrl) ? db.authCtrl[proj.id] : proj.defaultAuth;
+  const canVisit = proj.hasPages && proj.live;
+  const isAdmin = currentUser && currentUser.role === 'admin';
+
+  const row = document.createElement('div');
+  row.className = 'project-list-row';
+  row.style.setProperty('--card-color', proj.color);
+  row.innerHTML = `
+    <div class="lr-icon" style="background:${proj.iconBg}">${proj.icon}</div>
+    <div class="lr-info">
+      <div class="lr-name">${proj.name} ${authOn?'<span class="badge badge-private" style="vertical-align:middle">🔒</span>':'<span class="badge badge-public" style="vertical-align:middle">🌐</span>'}</div>
+      <div class="lr-desc">${proj.desc}</div>
+    </div>
+    <div class="lr-actions">
+      ${canVisit
+        ? `<button class="visit-btn" style="background:${proj.color};min-width:80px" onclick="visitProject('${proj.id}')">🚀 访问</button>`
+        : `<span class="visit-btn locked" style="min-width:80px">⏳ 未上线</span>`
+      }
+      <a class="gh-btn" href="${proj.github}" target="_blank">${ghIcon()}</a>
+      ${isAdmin ? `
+        <label class="toggle-sw" title="访问控制">
+          <input type="checkbox" ${authOn?'checked':''} onchange="toggleAuth('${proj.id}',this.checked)">
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </label>` : ''}
+    </div>`;
+  return row;
+}
+
+function renderTable(projects, db, container) {
+  const isAdmin = currentUser && currentUser.role === 'admin';
+  let rows = projects.map(proj => {
+    const authOn = (proj.id in db.authCtrl) ? db.authCtrl[proj.id] : proj.defaultAuth;
+    const canVisit = proj.hasPages && proj.live;
+    return `<tr>
+      <td><span style="font-size:18px">${proj.icon}</span></td>
+      <td><strong>${proj.name}</strong></td>
+      <td style="color:var(--text2);max-width:240px">${proj.desc.substring(0,40)}…</td>
+      <td>${proj.hasPages ? '<span class="badge badge-live">已上线</span>' : '<span style="color:var(--text3);font-size:11px">未上线</span>'}</td>
+      <td>${authOn ? '<span class="badge badge-private">需认证</span>' : '<span class="badge badge-public">公开</span>'}</td>
+      <td>
+        ${canVisit
+          ? `<button class="visit-btn" style="background:${proj.color};min-width:70px;padding:6px 10px;font-size:11px" onclick="visitProject('${proj.id}')">🚀 访问</button>`
+          : `<span style="color:var(--text3);font-size:11px">暂未上线</span>`
+        }
+      </td>
+      ${isAdmin ? `<td>
+        <label class="toggle-sw" title="访问控制">
+          <input type="checkbox" ${authOn?'checked':''} onchange="toggleAuth('${proj.id}',this.checked)">
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </label>
+      </td>` : ''}
+    </tr>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="t-wrap">
+      <table class="projects-table">
+        <thead><tr>
+          <th></th><th>项目名称</th><th>简介</th><th>状态</th><th>访问</th><th>操作</th>
+          ${isAdmin ? '<th>访问控制</th>' : ''}
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+function updateStats(projects, db) {
+  const total = projects.length;
+  const live = projects.filter(p => p.hasPages).length;
+  const authCount = projects.filter(p => (p.id in db.authCtrl) ? db.authCtrl[p.id] : p.defaultAuth).length;
+  document.getElementById('stats-bar').innerHTML = `
+    <div class="stat-chip"><strong>${total}</strong> 个项目</div>
+    <div class="stat-chip"><strong>${live}</strong> 个已上线</div>
+    <div class="stat-chip"><strong>${authCount}</strong> 个需认证</div>`;
+}
+
+function toggleAuth(projId, enabled) {
+  const db = getDB();
+  db.authCtrl[projId] = enabled;
+  saveDB(db);
+  renderProjects();
+}
+
+function ghIcon() {
+  return `<svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>`;
+}
+
+/* ══════════════════════════════════════════════════════
+   ⑦ 用户管理（管理员专用）
+══════════════════════════════════════════════════════ */
+function renderAdminPanel() {
+  const db = getDB();
+  const panel = document.getElementById('admin-panel');
+
+  const rows = db.users.map(u => {
+    const perms = u.projectPerms === null ? PROJECTS.map(p => p.id) : (u.projectPerms || []);
+    const chips = PROJECTS.map(p => `
+      <span class="perm-chip ${perms.includes(p.id)?'on':''}"
+            onclick="togglePerm('${u.id}','${p.id}')" title="${p.name}">
+        ${p.icon} ${p.id}
+      </span>`).join('');
+    return `
+      <div class="user-row" id="ur-${u.id}">
+        <div class="ur-top">
+          <div class="ur-info">
+            <div class="u-avatar" style="width:32px;height:32px;border-radius:50%;background:${u.avatar||'#2563eb'};display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700">${u.username[0].toUpperCase()}</div>
+            <div>
+              <div style="font-size:13px;font-weight:600">${u.displayName} <span style="color:var(--text3);font-size:11px">@${u.username}</span></div>
+              <div style="font-size:11px;color:${u.role==='admin'?'var(--accent4)':'var(--text3)'}">${u.role==='admin'?'👑 管理员':'👤 普通用户'}</div>
+            </div>
+          </div>
+          <div class="ur-actions">
+            ${u.id !== 'user_admin' ? `<button class="icon-btn" onclick="resetPassword('${u.id}')">🔑 重置密码</button>` : ''}
+            ${u.id !== 'user_admin' ? `<button class="icon-btn danger" onclick="deleteUser('${u.id}')">🗑 删除</button>` : ''}
+            ${u.id === 'user_admin' ? `<span style="font-size:11px;color:var(--text3)">超级管理员</span>` : ''}
+          </div>
         </div>
+        <div style="font-size:11px;color:var(--text3);margin-bottom:6px">项目访问权限 ${u.projectPerms===null?'<span style="color:var(--accent4)">(全部)</span>':''}：</div>
+        <div class="perm-grid">${chips}</div>
+        ${u.projectPerms!==null&&u.id!=='user_admin'?`<div style="margin-top:6px"><button class="icon-btn" onclick="grantAll('${u.id}')">全部授权</button> <button class="icon-btn" onclick="revokeAll('${u.id}')">全部撤销</button></div>`:''}
+      </div>`;
+  }).join('');
+
+  panel.innerHTML = `
+    <div class="add-user-form">
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--text)">➕ 添加新用户</div>
+      <div class="form-row">
+        <input type="text" id="new-user" placeholder="用户名（英文）" />
+        <input type="text" id="new-display" placeholder="显示名称" />
       </div>
-    `;
-    grid.appendChild(card);
+      <div class="form-row">
+        <input type="password" id="new-pass" placeholder="初始密码" />
+        <select id="new-role">
+          <option value="user">普通用户</option>
+          <option value="admin">管理员</option>
+        </select>
+      </div>
+      <div class="form-actions">
+        <button class="btn-primary" onclick="addUser()">创建用户</button>
+      </div>
+    </div>
+    <div class="sb-section-title">用户列表（${db.users.length} 人）</div>
+    ${rows}`;
+}
+
+function togglePerm(uid, projId) {
+  const db = getDB();
+  const user = db.users.find(u => u.id === uid);
+  if (!user || user.role === 'admin') return;
+  if (user.projectPerms === null) user.projectPerms = PROJECTS.map(p => p.id);
+  const idx = user.projectPerms.indexOf(projId);
+  if (idx >= 0) user.projectPerms.splice(idx, 1);
+  else user.projectPerms.push(projId);
+  saveDB(db);
+  renderAdminPanel();
+}
+
+function grantAll(uid) {
+  const db = getDB();
+  const user = db.users.find(u => u.id === uid);
+  if (user) { user.projectPerms = null; saveDB(db); renderAdminPanel(); }
+}
+
+function revokeAll(uid) {
+  const db = getDB();
+  const user = db.users.find(u => u.id === uid);
+  if (user) { user.projectPerms = []; saveDB(db); renderAdminPanel(); }
+}
+
+async function addUser() {
+  const username = document.getElementById('new-user').value.trim();
+  const display = document.getElementById('new-display').value.trim();
+  const pass = document.getElementById('new-pass').value;
+  const role = document.getElementById('new-role').value;
+  if (!username || !pass) { alert('用户名和密码不能为空'); return; }
+  if (!/^[a-zA-Z0-9_-]{2,20}$/.test(username)) { alert('用户名只能包含字母、数字、下划线，2-20字符'); return; }
+  const db = getDB();
+  if (db.users.find(u => u.username === username)) { alert('用户名已存在'); return; }
+  const hash = await sha256(username + ':' + pass);
+  const colors = ['#2563eb','#16a34a','#7c3aed','#db2777','#ea580c'];
+  db.users.push({
+    id: 'user_' + Date.now(),
+    username, displayName: display || username,
+    passwordHash: hash, role,
+    projectPerms: role === 'admin' ? null : [],
+    avatar: colors[Math.floor(Math.random()*colors.length)]
   });
-
-  updateStats();
+  saveDB(db);
+  renderAdminPanel();
+  document.getElementById('new-user').value = '';
+  document.getElementById('new-display').value = '';
+  document.getElementById('new-pass').value = '';
 }
 
-function toggleAuth(id, enabled) {
-  setSubAuth(id, enabled);
-  renderProjects(); // 重新渲染以更新 badge
+async function resetPassword(uid) {
+  const newPass = prompt('请输入新密码（至少6位）：');
+  if (!newPass || newPass.length < 6) { alert('密码不能少于6位'); return; }
+  const db = getDB();
+  const user = db.users.find(u => u.id === uid);
+  if (!user) return;
+  user.passwordHash = await sha256(user.username + ':' + newPass);
+  saveDB(db);
+  alert('密码已重置');
 }
 
-function updateStats() {
-  const total = PROJECTS.length;
-  const live = PROJECTS.filter(p => p.hasPages).length;
-  const authCount = PROJECTS.filter(p => isSubAuthEnabled(p.id)).length;
-  document.getElementById('total-count').textContent = total;
-  document.getElementById('live-count').textContent = live;
-  document.getElementById('auth-count').textContent = authCount;
+function deleteUser(uid) {
+  if (!confirm('确定要删除该用户吗？')) return;
+  const db = getDB();
+  db.users = db.users.filter(u => u.id !== uid);
+  saveDB(db);
+  renderAdminPanel();
 }
 
-/* ══════════════════════════════════════════
-   ⑥ 初始化
-══════════════════════════════════════════ */
-(function init() {
-  // 键盘 Enter 提交
-  ['inp-user', 'inp-pass'].forEach(id => {
+/* ══════════════════════════════════════════════════════
+   ⑧ 侧边栏
+══════════════════════════════════════════════════════ */
+function openSidebar(type) {
+  closeUserDropdown();
+  const sb = document.getElementById('sidebar');
+  const overlay = document.getElementById('sb-overlay');
+  const title = document.getElementById('sb-title');
+  const body = document.getElementById('sb-body');
+  sb.classList.add('show'); overlay.classList.add('show');
+
+  if (type === 'authctrl') {
+    title.textContent = '🛡 子项目访问控制';
+    const db = getDB();
+    body.innerHTML = `
+      <div class="sb-section">
+        <div class="sb-section-title">各子项目访问控制</div>
+        <p style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">
+          开启后，未通过门户认证的用户访问该子项目时将被跳转回门户登录页。
+          关闭后子项目对外公开访问。
+        </p>
+        ${PROJECTS.map(p => {
+          const on = (p.id in db.authCtrl) ? db.authCtrl[p.id] : p.defaultAuth;
+          return `
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;margin-bottom:8px;">
+              <div style="display:flex;align-items:center;gap:10px">
+                <span style="font-size:18px">${p.icon}</span>
+                <div><div style="font-size:13px;font-weight:600">${p.name}</div>
+                  <div style="font-size:11px;color:var(--text3)">${p.live||'暂未上线'}</div></div>
+              </div>
+              <label class="toggle-sw" style="flex-shrink:0">
+                <input type="checkbox" ${on?'checked':''} onchange="toggleAuth('${p.id}',this.checked)">
+                <div class="toggle-track"></div><div class="toggle-thumb"></div>
+              </label>
+            </div>`;
+        }).join('')}
+      </div>`;
+  } else if (type === 'profile') {
+    title.textContent = '👤 个人信息';
+    const u = currentUser;
+    body.innerHTML = `
+      <div class="sb-section">
+        <div style="text-align:center;padding:20px 0">
+          <div style="width:60px;height:60px;border-radius:50%;background:${u.avatar||'#2563eb'};display:inline-flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#fff;margin-bottom:10px">${u.username[0].toUpperCase()}</div>
+          <div style="font-size:16px;font-weight:700">${u.displayName}</div>
+          <div style="font-size:12px;color:var(--text2)">@${u.username}</div>
+          <div style="font-size:11px;margin-top:4px;color:${u.role==='admin'?'var(--accent4)':'var(--text2)'}">${u.role==='admin'?'👑 管理员':'👤 普通用户'}</div>
+        </div>
+        <div class="sb-section-title" style="margin-top:16px">可访问项目</div>
+        ${getUserProjects().map(p=>`<div style="padding:8px 12px;margin-bottom:6px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:13px">${p.icon} ${p.name}</div>`).join('')}
+      </div>`;
+  } else if (type === 'changepwd') {
+    title.textContent = '🔑 修改密码';
+    body.innerHTML = `
+      <div class="sb-section">
+        <div class="lf"><label>当前密码</label><input type="password" id="cp-old" placeholder="当前密码"/></div>
+        <div class="lf"><label>新密码</label><input type="password" id="cp-new" placeholder="新密码（至少6位）"/></div>
+        <div class="lf"><label>确认新密码</label><input type="password" id="cp-confirm" placeholder="再次输入新密码"/></div>
+        <button class="btn-primary" onclick="changePassword()">确认修改</button>
+        <div id="cp-msg" style="margin-top:10px;font-size:12px;color:var(--accent2);display:none"></div>
+      </div>`;
+  }
+}
+
+async function changePassword() {
+  const old = document.getElementById('cp-old').value;
+  const np = document.getElementById('cp-new').value;
+  const nc = document.getElementById('cp-confirm').value;
+  const msg = document.getElementById('cp-msg');
+  if (!old||!np) { alert('请填写所有字段'); return; }
+  if (np.length < 6) { alert('新密码至少6位'); return; }
+  if (np !== nc) { alert('两次密码不一致'); return; }
+  const db = getDB();
+  const user = db.users.find(u => u.id === currentUser.id);
+  const oldHash = await sha256(user.username + ':' + old);
+  if (oldHash !== user.passwordHash) { alert('当前密码错误'); return; }
+  user.passwordHash = await sha256(user.username + ':' + np);
+  saveDB(db);
+  msg.style.display = 'block';
+  msg.textContent = '✅ 密码已成功修改';
+  setTimeout(() => { msg.style.display='none'; closeSidebar(); }, 1500);
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('show');
+  document.getElementById('sb-overlay').classList.remove('show');
+}
+
+/* ══════════════════════════════════════════════════════
+   ⑨ 标签页切换
+══════════════════════════════════════════════════════ */
+function switchTab(tab, btn) {
+  document.querySelectorAll('.h-nav .nav-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  document.getElementById('tab-projects').style.display = tab==='projects' ? '' : 'none';
+  document.getElementById('tab-admin').style.display = tab==='admin' ? '' : 'none';
+  if (tab === 'admin') renderAdminPanel();
+}
+
+/* ══════════════════════════════════════════════════════
+   ⑩ 用户下拉菜单
+══════════════════════════════════════════════════════ */
+function toggleUserDropdown() {
+  document.getElementById('user-dropdown').classList.toggle('show');
+}
+function closeUserDropdown() {
+  document.getElementById('user-dropdown').classList.remove('show');
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.user-chip')) closeUserDropdown();
+});
+
+/* ══════════════════════════════════════════════════════
+   ⑪ 显示主 App
+══════════════════════════════════════════════════════ */
+function showApp(user) {
+  document.getElementById('login-overlay').classList.add('hidden');
+  document.getElementById('app').classList.add('visible');
+  // 设置用户信息
+  document.getElementById('u-name').textContent = user.displayName || user.username;
+  document.getElementById('u-avatar').textContent = user.username[0].toUpperCase();
+  document.getElementById('u-avatar').style.background = user.avatar || 'linear-gradient(135deg,#2563eb,#16a34a)';
+  document.getElementById('u-role').textContent = user.role === 'admin' ? '👑 管理员' : '👤 普通用户';
+  // 管理员显示额外功能
+  const isAdmin = user.role === 'admin';
+  document.getElementById('btn-admin').style.display = isAdmin ? '' : 'none';
+  document.getElementById('btn-authctrl').style.display = isAdmin ? '' : 'none';
+  renderProjects();
+}
+
+/* ══════════════════════════════════════════════════════
+   ⑫ 初始化
+══════════════════════════════════════════════════════ */
+(async function init() {
+  // 先初始化数据库
+  await initDB();
+  // 应用主题
+  applyStoredTheme();
+  // Enter 键提交
+  ['l-user','l-pass'].forEach(id => {
     document.getElementById(id).addEventListener('keydown', e => {
       if (e.key === 'Enter') doLogin();
     });
   });
-
-  // 检查已登录
-  if (sessionStorage.getItem(AUTH_KEY) === AUTH_TOKEN) {
-    showApp();
+  // 恢复会话
+  const user = restoreSession();
+  if (user) {
+    currentUser = user;
+    showApp(user);
   }
 })();
 </script>
