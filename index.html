@@ -374,8 +374,11 @@ async function doLogin() {
 
   if (user) {
     currentUser = user;
-    // sessionStorage 存储会话（不使用 token 暴露在 URL）
-    sessionStorage.setItem(SES_KEY, JSON.stringify({ uid: user.id, token: TOKEN, ts: Date.now() }));
+    const sesData = { uid: user.id, username: user.username, token: TOKEN, ts: Date.now(), ttl: 8 * 60 * 60 * 1000 };
+    // sessionStorage 存门户自身的会话（刷新页面恢复状态）
+    sessionStorage.setItem(SES_KEY, JSON.stringify(sesData));
+    // localStorage 写入跨子项目认证标记（portal-auth.js 读取用，同 origin 共享）
+    try { localStorage.setItem('portal_auth_session', JSON.stringify(sesData)); } catch(e) {}
     showApp(user);
   } else {
     showLoginErr('用户名或密码错误，请重试');
@@ -386,6 +389,7 @@ async function doLogin() {
 function doLogout() {
   currentUser = null;
   sessionStorage.removeItem(SES_KEY);
+  try { localStorage.removeItem('portal_auth_session'); } catch(e) {}
   document.getElementById('app').classList.remove('visible');
   document.getElementById('login-overlay').classList.remove('hidden');
   document.getElementById('l-pass').value = '';
@@ -398,7 +402,13 @@ function restoreSession() {
     const ses = JSON.parse(sessionStorage.getItem(SES_KEY) || 'null');
     if (!ses || ses.token !== TOKEN) return null;
     const db = getDB();
-    return db.users.find(u => u.id === ses.uid) || null;
+    const user = db.users.find(u => u.id === ses.uid) || null;
+    if (user) {
+      // 刷新 localStorage 中的跨子项目认证标记（延续有效期）
+      const fresh = { uid: user.id, username: user.username, token: TOKEN, ts: Date.now(), ttl: 8 * 60 * 60 * 1000 };
+      try { localStorage.setItem('portal_auth_session', JSON.stringify(fresh)); } catch(e) {}
+    }
+    return user;
   } catch { return null; }
 }
 
@@ -428,35 +438,20 @@ function applyStoredTheme() {
 }
 
 /* ══════════════════════════════════════════════════════
-   ⑤ 访问子项目（安全跳转：不在 URL 中暴露 token）
+   ⑤ 访问子项目（安全跳转：token 不经过 URL，通过 localStorage 传递）
 ══════════════════════════════════════════════════════ */
 function visitProject(projId) {
   const proj = PROJECTS.find(p => p.id === projId);
   if (!proj || !proj.live) return;
 
-  const db = getDB();
-  const needAuth = (projId in db.authCtrl) ? db.authCtrl[projId] : proj.defaultAuth;
+  // 刷新一次跨子项目授权标记（确保 localStorage 中的 token 是最新的）
+  try {
+    const sesData = { uid: currentUser.id, username: currentUser.username, token: TOKEN, ts: Date.now(), ttl: 8 * 60 * 60 * 1000 };
+    localStorage.setItem('portal_auth_session', JSON.stringify(sesData));
+  } catch(e) {}
 
-  if (needAuth) {
-    // 安全跳转：把 token 写入目标域的 sessionStorage（同域名时有效），
-    // 不同域使用 postMessage + localStorage 广播机制
-    // GitHub Pages 下所有子项目与门户同属 songhonglu.github.io，
-    // 共享 sessionStorage 不跨 origin（不同路径 sessionStorage 隔离），
-    // 最优方案：用 localStorage 作为跨路径信标（同 origin 下共享）
-    try {
-      // 写入跨子项目授权标记（同 origin localStorage 共享）
-      localStorage.setItem('portal_auth_session', JSON.stringify({
-        token: TOKEN,
-        uid: currentUser.id,
-        username: currentUser.username,
-        ts: Date.now(),
-        ttl: 8 * 60 * 60 * 1000   // 8小时有效
-      }));
-    } catch(e) {}
-    window.open(proj.live, '_blank');
-  } else {
-    window.open(proj.live, '_blank');
-  }
+  // 直接在新标签页打开，portal-auth.js 会在子项目页面自动校验
+  window.open(proj.live, '_blank');
 }
 
 /* ══════════════════════════════════════════════════════
@@ -764,6 +759,12 @@ function deleteUser(uid) {
    ⑧ 侧边栏
 ══════════════════════════════════════════════════════ */
 function openSidebar(type) {
+  // 管理员专属功能权限检查
+  const adminOnly = ['authctrl'];
+  if (adminOnly.includes(type) && (!currentUser || currentUser.role !== 'admin')) {
+    console.warn('无权访问：' + type);
+    return;
+  }
   closeUserDropdown();
   const sb = document.getElementById('sidebar');
   const overlay = document.getElementById('sb-overlay');
@@ -852,6 +853,11 @@ function closeSidebar() {
    ⑨ 标签页切换
 ══════════════════════════════════════════════════════ */
 function switchTab(tab, btn) {
+  // 非管理员不允许进入用户管理页
+  if (tab === 'admin' && (!currentUser || currentUser.role !== 'admin')) {
+    console.warn('无权访问用户管理');
+    return;
+  }
   document.querySelectorAll('.h-nav .nav-btn').forEach(b => b.classList.remove('active'));
   if (btn) btn.classList.add('active');
   document.getElementById('tab-projects').style.display = tab==='projects' ? '' : 'none';
