@@ -88,92 +88,13 @@
     return Array.isArray(user.projectPerms) && user.projectPerms.indexOf(projId) >= 0;
   }
 
-  // ── 显示子门户登录表单（统一用主门户用户体系验证） ─────────────
-  function showSubPortalLogin() {
-    document.documentElement.style.visibility = 'visible';
-    document.body.innerHTML = [
-      '<div id="portal-login-overlay" style="',
-      'min-height:100vh;display:flex;align-items:center;justify-content:center;',
-      'font-family:-apple-system,BlinkMacSystemFont,\\\'Segoe UI\\\',Roboto,sans-serif;',
-      'background:#f6f8fa;">',
-      '  <div style="background:#fff;border:1px solid #d0d7de;border-radius:12px;',
-      '  padding:40px;width:400px;box-shadow:0 4px 12px rgba(0,0,0,0.08);">',
-      '    <h2 style="font-size:18px;font-weight:600;color:#24292f;margin:0 0 24px 0;text-align:center;">项目登录</h2>',
-      '    <div style="margin-bottom:16px;">',
-      '      <label style="display:block;font-size:12px;font-weight:600;color:#57606a;margin-bottom:6px;">用户名</label>',
-      '      <input type="text" id="portal-l-user" placeholder="请输入用户名"',
-      '             style="width:100%;padding:10px;border:1px solid #d0d7de;border-radius:6px;font-size:14px;outline:none;"',
-      '             onkeydown="if(event.key===\\\'Enter\\\')document.getElementById(\\\'portal-l-pass\\\').focus()">',
-      '    </div>',
-      '    <div style="margin-bottom:20px;">',
-      '      <label style="display:block;font-size:12px;font-weight:600;color:#57606a;margin-bottom:6px;">密码</label>',
-      '      <input type="password" id="portal-l-pass" placeholder="请输入密码"',
-      '             style="width:100%;padding:10px;border:1px solid #d0d7de;border-radius:6px;font-size:14px;outline:none;"',
-      '             onkeydown="if(event.key===\\\'Enter\\\')window.__portalDoLogin()">',
-      '    </div>',
-      '    <div id="portal-l-err" style="margin-bottom:16px;padding:10px;background:rgba(248,81,73,0.1);',
-      '    border:1px solid rgba(248,81,73,0.3);border-radius:6px;color:#f85149;font-size:12px;display:none;"></div>',
-      '    <button onclick="window.__portalDoLogin()"',
-      '            style="width:100%;padding:12px;background:#1f6feb;color:#fff;font-size:14px;font-weight:600;border:none;border-radius:6px;cursor:pointer;">',
-      '      登录',
-      '    </button>',
-      '    <p style="margin-top:16px;text-align:center;font-size:12px;color:#57606a;">',
-      '      还没有账号？<a href="' + PORTAL_URL + '" target="_self" style="color:#1f6feb;text-decoration:none;">返回门户注册</a>',
-      '    </p>',
-      '  </div>',
-      '</div>'
-    ].join('');
-
-    // 绑定登录函数到全局
-    window.__portalDoLogin = function () {
-      var userEl = document.getElementById('portal-l-user');
-      var passEl = document.getElementById('portal-l-pass');
-      var errEl  = document.getElementById('portal-l-err');
-      var user = userEl.value.trim();
-      var pass = passEl.value;
-
-      if (!user || !pass) {
-        errEl.textContent = '请输入用户名和密码';
-        errEl.style.display = 'block';
-        return;
-      }
-
-      // 从主门户用户体系验证
-      try {
-        var db = readDB();
-        if (!db || !db.users) {
-          errEl.textContent = '系统错误：无法读取用户数据';
-          errEl.style.display = 'block';
-          return;
-        }
-
-        var found = db.users.find(function (u) { return u.username === user && u.password === pass; });
-
-        if (!found) {
-          errEl.textContent = '用户名或密码错误';
-          errEl.style.display = 'block';
-          passEl.value = '';
-          return;
-        }
-
-        // 登录成功：写入 session
-        var sesData = {
-          uid: found.id,
-          username: found.username,
-          role: found.role,
-          token: PORTAL_TOKEN,
-          ts: Date.now(),
-          ttl: SESSION_TTL
-        };
-        localStorage.setItem(SESSION_KEY, JSON.stringify(sesData));
-
-        // 刷新页面，会通过 portal-auth.js 的认证流程
-        location.reload();
-      } catch (e) {
-        errEl.textContent = '登录失败，请重试';
-        errEl.style.display = 'block';
-      }
-    };
+  // ── 跳转到主门户登录（未认证时） ─────────────────────────────
+  function redirectToPortalLogin() {
+    // 保存当前页面 URL，登录后自动跳转回
+    try { sessionStorage.setItem('portal_redirect', location.href); } catch (e) {}
+    // 先隐藏页面，再跳转，防止内容闪现
+    document.documentElement.style.visibility = 'hidden';
+    location.replace(PORTAL_URL);
   }
 
   // ── 显示无权限提示页 ─────────────────────────────────────────────────
@@ -246,8 +167,8 @@
     }
 
     if (!isAuthenticated()) {
-      // 未登录：显示子门户登录表单（统一用主门户用户体系验证）
-      showSubPortalLogin();
+      // 未登录：跳转到主门户登录
+      redirectToPortalLogin();
       return;
     }
 

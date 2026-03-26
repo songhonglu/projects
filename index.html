@@ -379,6 +379,18 @@ async function doLogin() {
     sessionStorage.setItem(SES_KEY, JSON.stringify(sesData));
     // localStorage 写入跨子项目认证标记（portal-auth.js 读取用，同 origin 共享）
     try { localStorage.setItem('portal_auth_session', JSON.stringify(sesData)); } catch(e) {}
+    
+    // 检查是否有子门户跳转来的 redirect 参数
+    try {
+      const redirect = sessionStorage.getItem('portal_redirect');
+      if (redirect) {
+        sessionStorage.removeItem('portal_redirect');
+        // 跳转回子门户
+        window.location.href = redirect;
+        return;
+      }
+    } catch(e) {}
+    
     showApp(user);
   } else {
     showLoginErr('用户名或密码错误，请重试');
