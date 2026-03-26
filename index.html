@@ -352,7 +352,7 @@ async function initDB() {
           displayName: '陈鹏涛',
           passwordHash: chenptHash,
           role: 'user',
-          projectPerms: ['contractmap', 'huarongdao-game', 'amberk', 'number-huarongdao'],
+          projectPerms: [],  // 默认无权限，需管理员手动授权
           avatar: '#16a34a',
           email: '',
           phone: '',
@@ -496,8 +496,16 @@ function setView(v, btn) {
 
 function getUserProjects() {
   if (!currentUser) return [];
-  if (currentUser.role === 'admin' || currentUser.projectPerms === null) return PROJECTS;
-  return PROJECTS.filter(p => (currentUser.projectPerms || []).includes(p.id));
+  // 每次都从数据库读取最新权限，确保管理员修改后立即生效
+  const db = getDB();
+  const latestUser = db.users.find(u => u.id === currentUser.id);
+  if (!latestUser) return [];
+  
+  // 更新 currentUser 的权限（同步最新数据）
+  currentUser.projectPerms = latestUser.projectPerms;
+  
+  if (latestUser.role === 'admin' || latestUser.projectPerms === null) return PROJECTS;
+  return PROJECTS.filter(p => (latestUser.projectPerms || []).includes(p.id));
 }
 
 function renderProjects() {
@@ -856,16 +864,21 @@ function closeUserEditModal() {
   editingUserId = null;
 }
 
-// 切换编辑弹窗中的权限
+// 切换编辑弹窗中的权限（允许空数组）
 function toggleEditPerm(projId) {
   const db = getDB();
   const user = db.users.find(u => u.id === editingUserId);
   if (!user || user.role === 'admin') return;
   
-  if (user.projectPerms === null) user.projectPerms = PROJECTS.map(p => p.id);
+  // 确保 projectPerms 是数组（不是 null）
+  if (user.projectPerms === null) user.projectPerms = [];
+  
   const idx = user.projectPerms.indexOf(projId);
-  if (idx >= 0) user.projectPerms.splice(idx, 1);
-  else user.projectPerms.push(projId);
+  if (idx >= 0) {
+    user.projectPerms.splice(idx, 1); // 取消授权
+  } else {
+    user.projectPerms.push(projId); // 添加授权
+  }
   
   // 重新渲染权限选择
   const perms = user.projectPerms;
@@ -904,6 +917,18 @@ function saveUserEdit() {
   user.email = email;
   user.phone = phone;
   saveDB(db);
+  
+  // 如果修改的是当前登录用户，同步更新 currentUser
+  if (currentUser && currentUser.id === editingUserId) {
+    currentUser.displayName = displayName;
+    currentUser.email = email;
+    currentUser.phone = phone;
+    currentUser.projectPerms = user.projectPerms;
+    // 刷新页面顶部显示
+    document.getElementById('u-name').textContent = displayName;
+    // 刷新项目列表（权限可能已变更）
+    renderProjects();
+  }
   
   closeUserEditModal();
   renderAdminPanel();
@@ -977,7 +1002,7 @@ async function addUser() {
     id: 'user_' + Date.now(),
     username, displayName: display || username,
     passwordHash: hash, role,
-    projectPerms: role === 'admin' ? null : [],
+    projectPerms: role === 'admin' ? null : [],  // 普通用户默认无权限（空数组）
     avatar: colors[Math.floor(Math.random()*colors.length)],
     email: '',
     phone: ''
