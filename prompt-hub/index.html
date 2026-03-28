@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>提示词管理系统 - PromptHub</title>
+    <!-- 门户认证模块（必须最早引入） -->
+    <script src="https://songhonglu.github.io/projects/portal-auth.js" data-proj-id="prompt-hub"></script>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-light: #818cf8;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --bg-hover: #334155;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --border: #334155;
+        }
+        [data-theme="light"] {
+            --bg-dark: #f8fafc;
+            --bg-card: #ffffff;
+            --bg-hover: #f1f5f9;
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 30px;
+        }
+        .header h1 { font-size: 28px; font-weight: 700; color: var(--primary-light); }
+        .header-accent { color: var(--text-primary); }
+        .theme-switcher { display: flex; align-items: center; gap: 8px; margin-right: 16px; }
+        .theme-btn {
+            width: 36px; height: 36px;
+            border-radius: 50%;
+            border: 2px solid var(--border);
+            background: var(--bg-card);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            color: var(--text-secondary);
+        }
+        .theme-btn:hover { border-color: var(--primary); color: var(--primary); }
+        .theme-btn.active { background: var(--primary); border-color: var(--primary); color: white; }
+        .tabs { display: flex; gap: 8px; margin-bottom: 30px; flex-wrap: wrap; }
+        .tab {
+            padding: 12px 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        .tab:hover { background: var(--bg-hover); color: var(--text-primary); }
+        .tab.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 24px;
+            border: 1px solid var(--border);
+            margin-bottom: 20px;
+        }
+        .card-title {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .card-title i { color: var(--primary-light); }
+        textarea, input, select {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        textarea:focus, input:focus, select:focus { outline: none; border-color: var(--primary); }
+        textarea { resize: vertical; min-height: 120px; font-family: 'Monaco', 'Menlo', monospace; }
+        .btn {
+            padding: 12px 24px;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { background: var(--primary-light); transform: translateY(-2px); }
+        .btn-secondary { background: var(--bg-hover); color: var(--text-primary); }
+        .btn-secondary:hover { background: var(--border); }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { opacity: 0.9; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-sm { padding: 8px 16px; font-size: 13px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .prompt-library { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 16px; }
+        .prompt-item {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid var(--border);
+            transition: all 0.3s;
+        }
+        .prompt-item:hover { border-color: var(--primary); transform: translateY(-2px); }
+        .prompt-item-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+        .prompt-item-title { font-weight: 600; font-size: 16px; color: var(--text-primary); }
+        .prompt-item-category {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            background: var(--primary);
+            color: white;
+        }
+        .prompt-item-content { color: var(--text-secondary); font-size: 13px; line-height: 1.6; margin-bottom: 12px; max-height: 80px; overflow: hidden; }
+        .prompt-item-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+        .search-box { position: relative; margin-bottom: 20px; }
+        .search-box input { padding-left: 44px; }
+        .search-box i { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); }
+        .tag-filter { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 20px; }
+        .tag {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            transition: all 0.3s;
+        }
+        .tag:hover, .tag.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: var(--bg-card);
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+        }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .modal-title { font-size: 20px; font-weight: 700; }
+        .modal-close { background: none; border: none; color: var(--text-secondary); font-size: 24px; cursor: pointer; }
+        .modal-close:hover { color: var(--danger); }
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; margin-bottom: 8px; font-weight: 500; color: var(--text-secondary); }
+        .result-box {
+            background: var(--bg-dark);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            border: 1px solid var(--border);
+        }
+        .result-label { font-size: 12px; color: var(--text-secondary); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 1px; }
+        .result-content { font-family: 'Monaco', 'Menlo', monospace; font-size: 13px; line-height: 1.8; white-space: pre-wrap; color: var(--success); }
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--text-secondary);
+        }
+        .empty-state i { font-size: 48px; margin-bottom: 16px; color: var(--border); }
+        .stats { display: flex; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
+        .stat-item {
+            background: var(--bg-card);
+            padding: 16px 24px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            flex: 1;
+            min-width: 150px;
+        }
+        .stat-value { font-size: 28px; font-weight: 700; color: var(--primary-light); }
+        .stat-label { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 16px 24px;
+            border-radius: 12px;
+            background: var(--success);
+            color: white;
+            font-weight: 600;
+            z-index: 2000;
+            transform: translateX(400px);
+            transition: transform 0.3s;
+        }
+        .notification.show { transform: translateX(0); }
+        .notification.error { background: var(--danger); }
+        .copy-feedback { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--primary); color: white; padding: 20px 40px; border-radius: 16px; font-size: 18px; font-weight: 600; z-index: 2000; opacity: 0; transition: opacity 0.3s; pointer-events: none; }
+        .copy-feedback.show { opacity: 1; }
+        /* 返回门户按钮 */
+        .back-to-portal {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            padding: 12px 20px;
+            background: var(--primary);
+            color: white;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        .back-to-portal:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.4); }
+        @media (max-width: 768px) {
+            .grid-2 { grid-template-columns: 1fr; }
+            .prompt-library { grid-template-columns: 1fr; }
+            .tabs { gap: 4px; }
+            .tab { padding: 10px 16px; font-size: 14px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-magic"></i> <span class="header-accent">Prompt</span>Hub</h1>
+            <div style="display:flex;align-items:center">
+                <div class="theme-switcher">
+                    <button class="theme-btn active" data-theme="dark" onclick="setTheme('dark')" title="深色"><i class="fas fa-moon"></i></button>
+                    <button class="theme-btn" data-theme="light" onclick="setTheme('light')" title="浅色"><i class="fas fa-sun"></i></button>
+                </div>
+                <button class="btn btn-secondary" onclick="exportLibrary()">
+                    <i class="fas fa-download"></i> 导出
+                </button>
+                <button class="btn btn-primary" onclick="importLibrary()">
+                    <i class="fas fa-upload"></i> 导入
+                </button>
+            </div>
+        </div>
+
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-value" id="totalCount">0</div>
+                <div class="stat-label">提示词总数</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="categoryCount">0</div>
+                <div class="stat-label">分类数量</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="todayCount">0</div>
+                <div class="stat-label">今日新增</div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" data-tab="generate" onclick="switchTab('generate')">
+                <i class="fas fa-rocket"></i> 提示词生成
+            </div>
+            <div class="tab" data-tab="optimize" onclick="switchTab('optimize')">
+                <i class="fas fa-wand-magic-sparkles"></i> 提示词优化
+            </div>
+            <div class="tab" data-tab="library" onclick="switchTab('library')">
+                <i class="fas fa-book"></i> 提示词库
+            </div>
+        </div>
+
+        <!-- 提示词生成模块 -->
+        <div id="tab-generate" class="tab-content">
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-gear"></i> 生成配置</div>
+                    <div class="form-group">
+                        <label class="form-label">任务类型</label>
+                        <select id="gen-task-type">
+                            <option value="writing">写作辅助</option>
+                            <option value="analysis">分析解读</option>
+                            <option value="coding">代码开发</option>
+                            <option value="creative">创意头脑风暴</option>
+                            <option value="summary">总结摘要</option>
+                            <option value="translation">翻译润色</option>
+                            <option value="qa">问答知识库</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">目标模型</label>
+                        <select id="gen-model">
+                            <option value="claude">Claude</option>
+                            <option value="gpt4">GPT-4</option>
+                            <option value="gpt3">GPT-3.5</option>
+                            <option value="gemini">Gemini</option>
+                            <option value="deepseek">DeepSeek</option>
+                            <option value="qwen">通义千问</option>
+                            <option value="ERNIE">文心一言</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">内容主题 / 需求描述</label>
+                        <textarea id="gen-topic" placeholder="描述你想要完成的任务或想要探讨的主题..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">期望输出风格（可选）</label>
+                        <input type="text" id="gen-style" placeholder="例如：专业严谨、轻松幽默、简洁明了...">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">约束条件（可选）</label>
+                        <input type="text" id="gen-constraints" placeholder="例如：500字以内、必须包含案例...">
+                    </div>
+                    <button class="btn btn-primary" onclick="generatePrompt()" style="width:100%">
+                        <i class="fas fa-magic"></i> 生成提示词
+                    </button>
+                </div>
+                <div class="card">
+                    <div class="card-title"><i class="fas fa-eye"></i> 生成结果</div>
+                    <div id="gen-result" class="empty-state">
+                        <i class="fas fa-lightbulb"></i>
+                        <p>配置左侧参数，点击生成按钮</p>
+                        <p style="font-size:13px;margin-top:8px">系统将为您构建结构化的提示词</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 提示词优化模块 -->
+        <div id="tab-optimize" class="tab-content" style="display:none">
+            <div class="card">
+                <div class="card-title"><i class="fas fa-pencil"></i> 输入待优化提示词</div>
+                <textarea id="opt-input" placeholder="粘贴您现有的提示词，系统将进行优化、改写和结构化处理..." style="min-height:150px"></textarea>
+                <div style="display:flex;gap:12px;margin-top:16px;flex-wrap:wrap">
+                    <button class="btn btn-primary" onclick="optimizePrompt('clarify')">
+                        <i class="fas fa-comments"></i> 清晰化
+                    </button>
+                    <button class="btn btn-primary" onclick="optimizePrompt('structure')">
+                        <i class="fas fa-list"></i> 结构化
+                    </button>
+                    <button class="btn btn-primary" onclick="optimizePrompt('expand')">
+                        <i class="fas fa-expand"></i> 扩展丰富
+                    </button>
+                    <button class="btn btn-primary" onclick="optimizePrompt('shrink')">
+                        <i class="fas fa-compress-alt"></i> 精简压缩
+                    </button>
+                    <button class="btn btn-secondary" onclick="optimizePrompt('format')">
+                        <i class="fas fa-code"></i> 格式化
+                    </button>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title"><i class="fas fa-check-circle"></i> 优化结果</div>
+                <div id="opt-result" class="empty-state">
+                    <i class="fas fa-wand-magic-sparkles"></i>
+                    <p>输入提示词并选择优化方式</p>
+                    <p style="font-size:13px;margin-top:8px">支持：清晰化、结构化、扩展、精简、格式化</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 提示词库模块 -->
+        <div id="tab-library" class="tab-content" style="display:none">
+            <div class="card">
+                <div class="card-title"><i class="fas fa-search"></i> 搜索提示词</div>
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="search-input" placeholder="搜索提示词标题、内容或标签..." oninput="searchPrompts()">
+                </div>
+                <div class="tag-filter" id="tag-filter"></div>
+                <button class="btn btn-primary" onclick="openAddModal()">
+                    <i class="fas fa-plus"></i> 新建提示词
+                </button>
+            </div>
+            <div id="prompt-library" class="prompt-library"></div>
+        </div>
+    </div>
+
+    <!-- 新建/编辑弹窗 -->
+    <div class="modal" id="prompt-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="modal-title"><i class="fas fa-plus"></i> 新建提示词</div>
+                <button class="modal-close" onclick="closeModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="form-group">
+                <label class="form-label">标题 *</label>
+                <input type="text" id="prompt-title" placeholder="给提示词起个名字">
+            </div>
+            <div class="form-group">
+                <label class="form-label">分类 *</label>
+                <select id="prompt-category">
+                    <option value="writing">写作辅助</option>
+                    <option value="analysis">分析解读</option>
+                    <option value="coding">代码开发</option>
+                    <option value="creative">创意头脑风暴</option>
+                    <option value="summary">总结摘要</option>
+                    <option value="translation">翻译润色</option>
+                    <option value="qa">问答知识库</option>
+                    <option value="other">其他</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">提示词内容 *</label>
+                <textarea id="prompt-content" placeholder="输入提示词内容..." style="min-height:200px"></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label">标签（用逗号分隔）</label>
+                <input type="text" id="prompt-tags" placeholder="例如：营销,文案,小红书">
+            </div>
+            <div class="form-group">
+                <label class="form-label">使用场景描述</label>
+                <textarea id="prompt-scenario" placeholder="描述何时使用这个提示词..." style="min-height:80px"></textarea>
+            </div>
+            <div style="display:flex;gap:12px;justify-content:flex-end;margin-top:20px">
+                <button class="btn btn-secondary" onclick="closeModal()">取消</button>
+                <button class="btn btn-primary" onclick="savePrompt()"><i class="fas fa-save"></i> 保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 提示词详情弹窗 -->
+    <div class="modal" id="view-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title" id="view-title">提示词详情</div>
+                <button class="modal-close" onclick="closeViewModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div id="view-content" style="font-family:monospace;white-space:pre-wrap;line-height:1.8;background:var(--bg-dark);padding:20px;border-radius:12px;margin-bottom:20px"></div>
+            <div id="view-tags" style="margin-bottom:20px"></div>
+            <div id="view-scenario" style="color:var(--text-secondary);margin-bottom:20px"></div>
+            <div style="display:flex;gap:12px;flex-wrap:wrap">
+                <button class="btn btn-primary" onclick="usePrompt()"><i class="fas fa-paper-plane"></i> 使用</button>
+                <button class="btn btn-secondary" onclick="copyPrompt()"><i class="fas fa-copy"></i> 复制</button>
+                <button class="btn btn-secondary" onclick="editCurrentPrompt()"><i class="fas fa-edit"></i> 编辑</button>
+                <button class="btn btn-danger" onclick="deleteCurrentPrompt()"><i class="fas fa-trash"></i> 删除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 返回门户按钮 -->
+    <a href="https://songhonglu.github.io/projects/index.html" class="back-to-portal">
+        <i class="fas fa-home"></i> 返回门户
+    </a>
+
+    <div class="notification" id="notification"></div>
+    <div class="copy-feedback" id="copy-feedback">已复制到剪贴板</div>
+    <input type="file" id="import-file" accept=".json" style="display:none" onchange="handleImport(event)">
+
+    <script>
+        // 数据存储（使用项目特定的key，避免冲突）
+        const STORAGE_KEY = 'prompthub_prompts_v2';
+        let prompts = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        let currentViewPrompt = null;
+        let currentEditId = null;
+        const categories = {
+            'writing': '写作辅助',
+            'analysis': '分析解读',
+            'coding': '代码开发',
+            'creative': '创意头脑风暴',
+            'summary': '总结摘要',
+            'translation': '翻译润色',
+            'qa': '问答知识库',
+            'other': '其他'
+        };
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTheme();
+            renderStats();
+            renderTagFilter();
+            renderLibrary();
+        });
+
+        // 主题切换 - 与门户同步
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('prompthub_theme', theme);
+            // 同步到门户主题
+            localStorage.setItem('portal_theme', theme);
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.theme === theme);
+            });
+        }
+
+        // 全局主题函数（供portal-auth.js调用）
+        window.applyTheme = function(theme) {
+            document.documentElement.setAttribute('data-theme', theme);
+            localStorage.setItem('prompthub_theme', theme);
+            document.querySelectorAll('.theme-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.theme === theme);
+            });
+        };
+
+        function loadTheme() {
+            // 优先从门户读取主题
+            const portalTheme = localStorage.getItem('portal_theme');
+            const saved = portalTheme || localStorage.getItem('prompthub_theme') || 'dark';
+            setTheme(saved);
+        }
+
+        // 标签颜色
+        const tagColors = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16'];
+        function getTagColor(tag) {
+            let hash = 0;
+            for (let i = 0; i < tag.length; i++) hash = tag.charCodeAt(i) + ((hash << 5) - hash);
+            return tagColors[Math.abs(hash) % tagColors.length];
+        }
+
+        // 渲染统计
+        function renderStats() {
+            const today = new Date().toDateString();
+            document.getElementById('totalCount').textContent = prompts.length;
+            document.getElementById('categoryCount').textContent = new Set(prompts.map(p => p.category)).size;
+            document.getElementById('todayCount').textContent = prompts.filter(p => new Date(p.created).toDateString() === today).length;
+        }
+
+        // 渲染标签筛选
+        function renderTagFilter() {
+            const allTags = [...new Set(prompts.flatMap(p => p.tags || []))];
+            const container = document.getElementById('tag-filter');
+            container.innerHTML = `<div class="tag active" onclick="filterByTag('')">全部</div>` +
+                allTags.map(tag => `<div class="tag" onclick="filterByTag('${tag}')">${tag}</div>`).join('');
+        }
+
+        let currentTagFilter = '';
+        function filterByTag(tag) {
+            currentTagFilter = tag;
+            document.querySelectorAll('.tag').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+            renderLibrary();
+        }
+
+        // 渲染提示词库
+        function renderLibrary() {
+            const container = document.getElementById('prompt-library');
+            const search = document.getElementById('search-input').value.toLowerCase();
+            let filtered = prompts;
+
+            if (search) {
+                filtered = filtered.filter(p =>
+                    p.title.toLowerCase().includes(search) ||
+                    p.content.toLowerCase().includes(search) ||
+                    (p.tags || []).some(t => t.toLowerCase().includes(search))
+                );
+            }
+            if (currentTagFilter) {
+                filtered = filtered.filter(p => (p.tags || []).includes(currentTagFilter));
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+                    <i class="fas fa-folder-open"></i>
+                    <p>${prompts.length === 0 ? '提示词库为空' : '未找到匹配的提示词'}</p>
+                    ${prompts.length === 0 ? '<p style="font-size:13px;margin-top:8px">点击右上角「新建」添加第一个提示词</p>' : ''}
+                </div>`;
+                return;
+            }
+
+            container.innerHTML = filtered.map(p => `
+                <div class="prompt-item" onclick="viewPrompt('${p.id}')">
+                    <div class="prompt-item-header">
+                        <div class="prompt-item-title">${escapeHtml(p.title)}</div>
+                        <span class="prompt-item-category">${categories[p.category] || p.category}</span>
+                    </div>
+                    <div class="prompt-item-content">${escapeHtml(p.content.substring(0, 150))}${p.content.length > 150 ? '...' : ''}</div>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
+                        ${(p.tags || []).slice(0, 3).map(t => `<span style="padding:3px 8px;border-radius:12px;font-size:11px;background:${getTagColor(t)}20;color:${getTagColor(t)}">${t}</span>`).join('')}
+                    </div>
+                    <div class="prompt-item-actions">
+                        <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation();copyPromptById('${p.id}')"><i class="fas fa-copy"></i> 复制</button>
+                        <button class="btn btn-sm btn-secondary" onclick="event.stopPropagation();editPrompt('${p.id}')"><i class="fas fa-edit"></i> 编辑</button>
+                        <button class="btn btn-sm btn-danger" onclick="event.stopPropagation();deletePrompt('${p.id}')"><i class="fas fa-trash"></i> 删除</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function searchPrompts() { renderLibrary(); }
+
+        // Tab切换
+        function switchTab(tab) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+            document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+            document.getElementById(`tab-${tab}`).style.display = 'block';
+            if (tab === 'library') { renderTagFilter(); renderLibrary(); }
+        }
+
+        // 生成提示词
+        function generatePrompt() {
+            const taskType = document.getElementById('gen-task-type').value;
+            const model = document.getElementById('gen-model').value;
+            const topic = document.getElementById('gen-topic').value.trim();
+            const style = document.getElementById('gen-style').value.trim();
+            const constraints = document.getElementById('gen-constraints').value.trim();
+
+            if (!topic) { showNotification('请输入内容主题', true); return; }
+
+            const taskLabels = {
+                'writing': '写作任务', 'analysis': '分析任务', 'coding': '代码开发',
+                'creative': '创意任务', 'summary': '总结任务', 'translation': '翻译任务', 'qa': '问答任务'
+            };
+
+            let prompt = `# ${taskLabels[taskType]}\n\n`;
+            prompt += `## 角色定义\n你是一位专业的${taskLabels[taskType]}专家，擅长${getExpertise(taskType)}。\n\n`;
+            prompt += `## 任务背景\n${topic}\n\n`;
+            prompt += `## 输出要求\n`;
+
+            if (style) prompt += `- 风格：${style}\n`;
+            if (constraints) prompt += `- 约束：${constraints}\n`;
+
+            prompt += `\n## 参考模板\n请参考以下结构进行输出：\n`;
+            prompt += getTemplate(taskType);
+
+            document.getElementById('gen-result').innerHTML = `
+                <div class="result-box">
+                    <div class="result-label">生成的提示词</div>
+                    <div class="result-content">${escapeHtml(prompt)}</div>
+                </div>
+                <div style="display:flex;gap:12px;margin-top:16px;flex-wrap:wrap">
+                    <button class="btn btn-primary" onclick="copyResult()"><i class="fas fa-copy"></i> 复制</button>
+                    <button class="btn btn-success" onclick="saveToLibrary('${taskType}')"><i class="fas fa-save"></i> 保存到词库</button>
+                </div>
+            `;
+        }
+
+        function getExpertise(taskType) {
+            const map = {
+                'writing': '内容创作、文案撰写、表达优化',
+                'analysis': '数据分析、趋势判断、逻辑推理',
+                'coding': '代码编写、Bug修复、架构设计',
+                'creative': '创意发散、灵感激发、思维拓展',
+                'summary': '信息提炼、重点提取、结构化整理',
+                'translation': '语言转换、文化适配、本地化',
+                'qa': '知识解答、问题分析、方案建议'
+            };
+            return map[taskType] || '相关领域专家';
+        }
+
+        function getTemplate(taskType) {
+            const map = {
+                'writing': '1. 开篇引入\n2. 核心内容（3-5个要点）\n3. 案例/数据支撑\n4. 总结升华\n5. 行动号召',
+                'analysis': '1. 问题界定\n2. 数据/证据列举\n3. 多角度分析\n4. 核心发现\n5. 建议与结论',
+                'coding': '1. 需求理解\n2. 技术方案\n3. 代码实现\n4. 测试验证\n5. 优化建议',
+                'creative': '1. 头脑风暴（发散阶段）\n2. 关联分析\n3. 创新点提炼\n4. 可行性评估\n5. 落地建议',
+                'summary': '1. 核心观点（1-3条）\n2. 关键细节\n3. 逻辑脉络\n4. 一句话总结',
+                'translation': '1. 直译版本\n2. 意译版本\n3. 文化适配说明\n4. 术语对照',
+                'qa': '1. 问题确认\n2. 原因分析\n3. 解决方案\n4. 相关建议'
+            };
+            return map[taskType] || '按专业方式输出';
+        }
+
+        let generatedPromptCache = '';
+        function copyResult() {
+            const content = document.querySelector('#gen-result .result-content');
+            if (content) {
+                navigator.clipboard.writeText(content.textContent);
+                showCopyFeedback();
+            }
+        }
+
+        function saveToLibrary(category) {
+            const content = document.querySelector('#gen-result .result-content');
+            if (content) {
+                document.getElementById('prompt-title').value = `【生成】${document.getElementById('gen-topic').value.substring(0, 20)}`;
+                document.getElementById('prompt-category').value = category;
+                document.getElementById('prompt-content').value = content.textContent;
+                currentEditId = null;
+                document.getElementById('modal-title').innerHTML = '<i class="fas fa-plus"></i> 保存到词库';
+                document.getElementById('prompt-modal').classList.add('active');
+            }
+        }
+
+        // 优化提示词
+        function optimizePrompt(type) {
+            const input = document.getElementById('opt-input').value.trim();
+            if (!input) { showNotification('请输入待优化的提示词', true); return; }
+
+            let result = '';
+            switch(type) {
+                case 'clarify':
+                    result = `# 优化后的清晰化提示词\n\n## 角色\n[明确定义AI角色]\n\n## 任务\n[具体说明要做什么]\n\n## 背景\n${input}\n\n## 约束\n- 输出语言：中文\n- 格式要求：[具体格式]\n- 长度要求：[字数/篇幅]\n\n## 输出\n[期望的输出结构]`;
+                    break;
+                case 'structure':
+                    result = `# 结构化提示词\n\n## 1. 角色定义\n[你是谁/你的专长]\n\n## 2. 任务目标\n[要完成什么]\n\n## 3. 输入信息\n${input}\n\n## 4. 处理步骤\n- 步骤1：\n- 步骤2：\n- 步骤3：\n\n## 5. 输出要求\n[格式/风格/长度]\n\n## 6. 示例\n[如果有的话]`;
+                    break;
+                case 'expand':
+                    result = `# 扩展增强版提示词\n\n## 原始提示词\n${input}\n\n---\n\n## 扩展后的完整提示词\n\n### 角色设定\n你是一位专业且经验丰富的[领域]专家，具备深厚的专业知识和实践经验。\n\n### 核心任务\n[详细描述任务目标]\n\n### 背景信息\n[补充必要的上下文]\n\n### 分析框架\n请从以下维度进行分析：\n1. [维度1]\n2. [维度2]\n3. [维度3]\n\n### 输出要求\n- 语言风格：[描述]\n- 结构格式：[描述]\n- 篇幅长度：[描述]\n\n### 注意事项\n- [要点1]\n- [要点2]\n- [要点3]`;
+                    break;
+                case 'shrink':
+                    result = `# 精简版提示词\n\n[角色]：专业助手\n\n[任务]：${input}\n\n[约束]：简洁、直接、重点突出\n\n[输出]：直接给出答案，避免冗余`;
+                    break;
+                case 'format':
+                    result = input.split('\n').map((line, i) => `${i + 1}. ${line}`).join('\n');
+                    break;
+            }
+
+            document.getElementById('opt-result').innerHTML = `
+                <div class="result-box">
+                    <div class="result-label">优化结果</div>
+                    <div class="result-content">${escapeHtml(result)}</div>
+                </div>
+                <div style="display:flex;gap:12px;margin-top:16px">
+                    <button class="btn btn-primary" onclick="copyOptResult()"><i class="fas fa-copy"></i> 复制</button>
+                    <button class="btn btn-success" onclick="saveOptToLibrary()"><i class="fas fa-save"></i> 保存到词库</button>
+                </div>
+            `;
+        }
+
+        function copyOptResult() {
+            const content = document.querySelector('#opt-result .result-content');
+            if (content) { navigator.clipboard.writeText(content.textContent); showCopyFeedback(); }
+        }
+
+        function saveOptToLibrary() {
+            const content = document.querySelector('#opt-result .result-content');
+            if (content) {
+                document.getElementById('prompt-title').value = '【优化】' + document.getElementById('opt-input').value.substring(0, 20);
+                document.getElementById('prompt-category').value = 'other';
+                document.getElementById('prompt-content').value = content.textContent;
+                currentEditId = null;
+                document.getElementById('modal-title').innerHTML = '<i class="fas fa-plus"></i> 保存到词库';
+                document.getElementById('prompt-modal').classList.add('active');
+            }
+        }
+
+        // 提示词库管理
+        function openAddModal() {
+            currentEditId = null;
+            document.getElementById('prompt-title').value = '';
+            document.getElementById('prompt-category').value = 'writing';
+            document.getElementById('prompt-content').value = '';
+            document.getElementById('prompt-tags').value = '';
+            document.getElementById('prompt-scenario').value = '';
+            document.getElementById('modal-title').innerHTML = '<i class="fas fa-plus"></i> 新建提示词';
+            document.getElementById('prompt-modal').classList.add('active');
+        }
+
+        function editPrompt(id) {
+            const p = prompts.find(p => p.id === id);
+            if (!p) return;
+            currentEditId = id;
+            document.getElementById('prompt-title').value = p.title;
+            document.getElementById('prompt-category').value = p.category;
+            document.getElementById('prompt-content').value = p.content;
+            document.getElementById('prompt-tags').value = (p.tags || []).join(',');
+            document.getElementById('prompt-scenario').value = p.scenario || '';
+            document.getElementById('modal-title').innerHTML = '<i class="fas fa-edit"></i> 编辑提示词';
+            document.getElementById('prompt-modal').classList.add('active');
+        }
+
+        function editCurrentPrompt() {
+            if (currentViewPrompt) { editPrompt(currentViewPrompt.id); closeViewModal(); }
+        }
+
+        function savePrompt() {
+            const title = document.getElementById('prompt-title').value.trim();
+            const category = document.getElementById('prompt-category').value;
+            const content = document.getElementById('prompt-content').value.trim();
+            const tagsRaw = document.getElementById('prompt-tags').value.trim();
+            const scenario = document.getElementById('prompt-scenario').value.trim();
+
+            if (!title || !content) { showNotification('标题和内容不能为空', true); return; }
+
+            const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
+
+            if (currentEditId) {
+                const idx = prompts.findIndex(p => p.id === currentEditId);
+                if (idx !== -1) {
+                    prompts[idx] = { ...prompts[idx], title, category, content, tags, scenario, updated: new Date().toISOString() };
+                }
+            } else {
+                prompts.unshift({
+                    id: Date.now().toString(),
+                    title, category, content, tags, scenario,
+                    created: new Date().toISOString(),
+                    updated: new Date().toISOString()
+                });
+            }
+
+            saveToStorage();
+            closeModal();
+            renderStats();
+            renderTagFilter();
+            renderLibrary();
+            showNotification(currentEditId ? '提示词已更新' : '提示词已保存');
+        }
+
+        function deletePrompt(id) {
+            if (!confirm('确定要删除这个提示词吗？')) return;
+            prompts = prompts.filter(p => p.id !== id);
+            saveToStorage();
+            renderStats();
+            renderTagFilter();
+            renderLibrary();
+            showNotification('提示词已删除');
+        }
+
+        function deleteCurrentPrompt() {
+            if (currentViewPrompt) { deletePrompt(currentViewPrompt.id); closeViewModal(); }
+        }
+
+        function viewPrompt(id) {
+            const p = prompts.find(p => p.id === id);
+            if (!p) return;
+            currentViewPrompt = p;
+            document.getElementById('view-title').textContent = p.title;
+            document.getElementById('view-content').textContent = p.content;
+            document.getElementById('view-tags').innerHTML = (p.tags || []).map(t =>
+                `<span style="padding:4px 12px;border-radius:20px;font-size:12px;background:${getTagColor(t)}20;color:${getTagColor(t)};margin-right:6px">${t}</span>`
+            ).join('');
+            document.getElementById('view-scenario').innerHTML = p.scenario ? `<strong>使用场景：</strong>${p.scenario}` : '';
+            document.getElementById('view-modal').classList.add('active');
+        }
+
+        function usePrompt() {
+            if (currentViewPrompt) {
+                switchTab('optimize');
+                document.getElementById('opt-input').value = currentViewPrompt.content;
+                closeViewModal();
+            }
+        }
+
+        function copyPrompt() {
+            if (currentViewPrompt) {
+                navigator.clipboard.writeText(currentViewPrompt.content);
+                showCopyFeedback();
+            }
+        }
+
+        function copyPromptById(id) {
+            const p = prompts.find(p => p.id === id);
+            if (p) { navigator.clipboard.writeText(p.content); showCopyFeedback(); }
+        }
+
+        function closeModal() { document.getElementById('prompt-modal').classList.remove('active'); }
+        function closeViewModal() { document.getElementById('view-modal').classList.remove('active'); currentViewPrompt = null; }
+
+        // 导入导出
+        function exportLibrary() {
+            const data = JSON.stringify(prompts, null, 2);
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `prompthub_backup_${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function importLibrary() { document.getElementById('import-file').click(); }
+        function handleImport(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = e => {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (Array.isArray(imported)) {
+                        prompts = [...imported, ...prompts];
+                        saveToStorage();
+                        renderStats();
+                        renderTagFilter();
+                        renderLibrary();
+                        showNotification(`成功导入 ${imported.length} 条提示词`);
+                    } else { showNotification('文件格式错误', true); }
+                } catch { showNotification('文件解析失败', true); }
+            };
+            reader.readAsText(file);
+            event.target.value = '';
+        }
+
+        function saveToStorage() { localStorage.setItem(STORAGE_KEY, JSON.stringify(prompts)); }
+
+        // 工具函数
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function showNotification(msg, isError = false) {
+            const n = document.getElementById('notification');
+            n.textContent = msg;
+            n.className = 'notification' + (isError ? ' error' : '');
+            n.classList.add('show');
+            setTimeout(() => n.classList.remove('show'), 3000);
+        }
+
+        function showCopyFeedback() {
+            const f = document.getElementById('copy-feedback');
+            f.classList.add('show');
+            setTimeout(() => f.classList.remove('show'), 1500);
+        }
+    </script>
+</body>
+</html>
