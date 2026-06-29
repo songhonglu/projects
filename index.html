@@ -333,11 +333,6 @@ async function doLogin() {
   if (!username || !password) { showLoginErr('请输入用户名和密码'); return; }
 
   try {
-    // 先加载 GitHub Token 提示（如果没有）
-    if (!getGhToken()) {
-      showLoginErr('请先点击右上角 "GitHub Token" 配置 Token');
-      return;
-    }
     await loadUserData();
     const user = dbData.users.find(u => u.username === username);
     if (!user) { showLoginErr('用户不存在'); return; }
