@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>项目门户</title>
+<style>
+:root,[data-theme="dark"] {
+  --bg:#0d1117;--bg2:#0f1923;--surface:#161b22;--surface2:#1e2430;
+  --border:#30363d;--border2:#21262d;--accent:#58a6ff;--accent2:#3fb950;
+  --accent3:#f78166;--accent4:#d29922;--text:#e6edf3;--text2:#8b949e;--text3:#6e7681;
+  --radius:12px;--shadow:0 8px 32px rgba(0,0,0,.5);
+  --login-bg:radial-gradient(ellipse at 60% 40%,#0d1b2a,#070c14);
+}
+[data-theme="light"]{--bg:#f6f8fa;--bg2:#eef1f5;--surface:#fff;--surface2:#f0f4f8;--border:#d0d7de;--border2:#e1e4e8;--accent:#0969da;--accent2:#1a7f37;--accent3:#cf222e;--accent4:#9a6700;--text:#1f2328;--text2:#57606a;--text3:#8c959f;--shadow:0 4px 16px rgba(0,0,0,.12);--login-bg:radial-gradient(ellipse at 60% 40%,#dce8f5,#c8dff0);}
+[data-theme="corporate"]{--bg:#0a1628;--bg2:#0c1e36;--surface:#0f2040;--surface2:#0d1b32;--border:#1a3a6e;--border2:#0f2a50;--accent:#4d9fff;--accent2:#2ea44f;--accent3:#f85149;--accent4:#e3b341;--text:#e8f0fe;--text2:#8ba3c8;--text3:#6a88aa;--shadow:0 8px 32px rgba(0,0,0,.6);--login-bg:radial-gradient(ellipse at 60% 40%,#071020,#030810);}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Noto Sans SC',sans-serif;background:var(--bg);color:var(--text);transition:background .3s,color .3s;}
+#login-overlay{position:fixed;inset:0;z-index:9999;background:var(--login-bg);display:flex;align-items:center;justify-content:center;}
+#login-overlay.hidden{display:none;}
+.login-card{width:400px;background:var(--surface);border:1px solid var(--border);border-radius:18px;padding:44px 40px 36px;box-shadow:var(--shadow),0 0 80px rgba(88,166,255,.05);}
+.login-logo{text-align:center;margin-bottom:28px;}
+.login-logo .licon{width:56px;height:56px;background:linear-gradient(135deg,#1c3a6e,#1a6e3a);border-radius:14px;display:inline-flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:12px;}
+.login-logo h1{font-size:20px;font-weight:700;letter-spacing:.02em;}
+.login-logo p{font-size:12px;color:var(--text2);margin-top:4px;}
+.lf{margin-bottom:14px;}
+.lf label{display:block;font-size:11px;font-weight:700;color:var(--text2);margin-bottom:5px;text-transform:uppercase;letter-spacing:.06em;}
+.lf input{width:100%;padding:10px 13px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;outline:none;transition:border-color .2s;}
+.lf input:focus{border-color:var(--accent);}
+.login-btn{width:100%;padding:11px;background:var(--accent);border:none;border-radius:8px;color:#fff;font-size:15px;font-weight:600;cursor:pointer;margin-top:6px;transition:opacity .2s,transform .1s;}
+.login-btn:hover{opacity:.88;}.login-btn:active{transform:scale(.98);}
+.login-err{background:rgba(247,129,102,.1);border:1px solid rgba(247,129,102,.3);border-radius:7px;padding:8px 11px;font-size:13px;color:var(--accent3);margin-top:10px;display:none;}
+.login-err.show{display:block;}
+.theme-switcher-login{display:flex;justify-content:center;gap:8px;margin-top:18px;}
+.tsb{background:transparent;border:1px solid var(--border);border-radius:6px;padding:4px 10px;font-size:11px;color:var(--text2);cursor:pointer;transition:all .2s;}
+.tsb:hover,.tsb.active{border-color:var(--accent);color:var(--accent);}
+#app{display:none;flex-direction:column;min-height:100vh;}#app.visible{display:flex;}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;gap:12px;}
+.h-left{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.h-logo{width:32px;height:32px;background:linear-gradient(135deg,#1c3a6e,#1a6e3a);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:15px;}
+.h-title{font-size:15px;font-weight:700;}.h-sub{font-size:11px;color:var(--text2);}
+.h-nav{display:flex;gap:2px;flex:1;justify-content:center;}
+.nav-btn{padding:5px 14px;background:transparent;border:none;border-radius:7px;color:var(--text2);font-size:13px;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.nav-btn:hover{background:var(--surface2);color:var(--text);}.nav-btn.active{background:rgba(88,166,255,.12);color:var(--accent);}
+.h-right{display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.user-chip{display:flex;align-items:center;gap:7px;padding:4px 10px 4px 6px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;cursor:pointer;transition:border-color .2s;position:relative;}
+.user-chip:hover{border-color:var(--accent);}
+.u-avatar{width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;}
+.u-name{font-size:12px;color:var(--text2);}.u-role{font-size:10px;color:var(--accent4);}
+.user-dropdown{position:absolute;top:calc(100% + 8px);right:0;background:var(--surface);border:1px solid var(--border);border-radius:10px;min-width:150px;box-shadow:var(--shadow);display:none;z-index:300;}
+.user-dropdown.show{display:block;}
+.ud-item{padding:9px 14px;font-size:13px;color:var(--text2);cursor:pointer;transition:background .15s;display:flex;align-items:center;gap:8px;border-radius:8px;margin:3px;}
+.ud-item:hover{background:var(--surface2);color:var(--text);}.ud-divider{height:1px;background:var(--border);margin:3px 0;}
+.sidebar-overlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,.5);display:none;}
+.sidebar-overlay.show{display:block;}
+.sidebar{position:fixed;right:0;top:0;bottom:0;width:480px;max-width:95vw;background:var(--surface);border-left:1px solid var(--border);z-index:301;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .3s cubic-bezier(.22,.68,0,1.2);}
+.sidebar.show{transform:none;}
+.sb-header{padding:18px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;}
+.sb-header h3{font-size:15px;font-weight:700;}
+.sb-close{background:transparent;border:none;color:var(--text2);font-size:20px;cursor:pointer;padding:2px 6px;border-radius:5px;}.sb-close:hover{color:var(--text);}
+.sb-body{flex:1;overflow-y:auto;padding:16px 20px;}
+.sb-section{margin-bottom:24px;}.sb-section-title{font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px;}
+.user-row{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:8px;}
+.ur-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.ur-info{display:flex;align-items:center;gap:9px;}
+.ur-actions{display:flex;gap:6px;}
+.icon-btn{background:transparent;border:1px solid var(--border);border-radius:6px;padding:3px 8px;font-size:11px;color:var(--text2);cursor:pointer;transition:all .15s;}.icon-btn:hover{border-color:var(--accent);color:var(--accent);}.icon-btn.danger:hover{border-color:var(--accent3);color:var(--accent3);}
+.perm-grid{display:flex;flex-wrap:wrap;gap:6px;}
+.perm-chip{font-size:11px;padding:2px 9px;border-radius:12px;cursor:pointer;transition:all .15s;user-select:none;border:1px solid var(--border);color:var(--text2);}.perm-chip.on{background:rgba(88,166,255,.15);border-color:rgba(88,166,255,.4);color:var(--accent);}
+.add-user-form{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:10px;}
+.form-row{display:flex;gap:8px;margin-bottom:8px;}
+.form-row input,.form-row select{flex:1;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:7px;color:var(--text);font-size:13px;outline:none;}.form-row input:focus,.form-row select:focus{border-color:var(--accent);}
+.form-actions{display:flex;gap:8px;}
+.btn-primary{padding:7px 16px;background:var(--accent);border:none;border-radius:7px;color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s;}.btn-primary:hover{opacity:.85;}
+.btn-secondary{padding:7px 14px;background:transparent;border:1px solid var(--border);border-radius:7px;color:var(--text2);font-size:13px;cursor:pointer;transition:all .15s;}.btn-secondary:hover{border-color:var(--accent);color:var(--accent);}
+.theme-panel{display:flex;gap:8px;flex-wrap:wrap;}
+.theme-btn{padding:7px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text2);font-size:12px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px;}.theme-btn:hover,.theme-btn.active{border-color:var(--accent);color:var(--text);}
+main{flex:1;padding:28px 24px;max-width:1400px;margin:0 auto;width:100%;}
+.page-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;}
+.page-hd h2{font-size:22px;font-weight:700;}
+.page-hd-right{display:flex;align-items:center;gap:10px;}
+.stats-bar{display:flex;gap:12px;margin-bottom:24px;flex-wrap:wrap;}
+.stat-chip{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:9px 16px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);}.stat-chip strong{color:var(--text);font-size:16px;font-weight:700;}
+.view-switcher{display:flex;gap:2px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:3px;}
+.view-btn{background:transparent;border:none;color:var(--text2);padding:5px 10px;border-radius:6px;cursor:pointer;transition:all .15s;font-size:14px;}.view-btn.active{background:var(--surface);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.2);}
+.projects-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;}
+.project-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;transition:border-color .2s,transform .2s,box-shadow .2s;position:relative;overflow:hidden;cursor:default;}
+.project-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--card-color,var(--accent));opacity:0;transition:opacity .2s;}
+.project-card:hover{border-color:var(--card-color,var(--accent));transform:translateY(-2px);box-shadow:0 10px 36px rgba(0,0,0,.35);}.project-card:hover::before{opacity:1;}
+.card-hd{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;}
+.card-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;}
+.card-badges{display:flex;gap:5px;flex-wrap:wrap;align-items:center;}
+.badge{font-size:10px;padding:2px 7px;border-radius:20px;font-weight:600;letter-spacing:.03em;}
+.badge-live{background:rgba(63,185,80,.15);color:var(--accent2);border:1px solid rgba(63,185,80,.3);}
+.badge-private{background:rgba(247,129,102,.1);color:var(--accent3);border:1px solid rgba(247,129,102,.3);}
+.badge-public{background:rgba(88,166,255,.1);color:var(--accent);border:1px solid rgba(88,166,255,.3);}
+.badge-admin{background:rgba(210,153,34,.12);color:var(--accent4);border:1px solid rgba(210,153,34,.3);}
+.card-title{font-size:15px;font-weight:700;margin:8px 0 5px;}
+.card-desc{font-size:12px;color:var(--text2);line-height:1.6;min-height:36px;}
+.card-footer{margin-top:14px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.visit-btn{flex:1;min-width:100px;padding:8px 14px;border:none;border-radius:7px;color:#fff;font-size:12px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:5px;transition:opacity .2s;background:var(--card-color,var(--accent));}.visit-btn:hover{opacity:.84;}
+.visit-btn.locked{background:var(--surface2);border:1px solid var(--border);color:var(--text2);}
+.gh-btn{padding:8px 10px;background:transparent;border:1px solid var(--border);border-radius:7px;color:var(--text2);font-size:11px;text-decoration:none;display:inline-flex;align-items:center;gap:4px;transition:border-color .15s,color .15s;white-space:nowrap;}
+.gh-btn:hover{border-color:var(--accent);color:var(--accent);}
+.auth-toggle{display:flex;align-items:center;gap:6px;}
+.toggle-label{font-size:10px;color:var(--text3);white-space:nowrap;}
+.toggle-sw{position:relative;width:34px;height:19px;cursor:pointer;display:inline-block;}
+.toggle-sw input{opacity:0;width:0;height:0;position:absolute;}
+.toggle-track{position:absolute;inset:0;background:var(--border);border-radius:19px;transition:background .2s;}
+.toggle-sw input:checked+.toggle-track{background:var(--accent2);}.toggle-thumb{position:absolute;top:3px;left:3px;width:13px;height:13px;background:#fff;border-radius:50%;transition:transform .2s;pointer-events:none;}.toggle-sw input:checked~.toggle-thumb{transform:translateX(15px);}
+.projects-list{display:flex;flex-direction:column;gap:8px;}
+.project-list-row{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 18px;display:flex;align-items:center;gap:14px;transition:border-color .2s;}
+.project-list-row:hover{border-color:var(--card-color,var(--accent));}
+.lr-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.lr-info{flex:1;min-width:0;}.lr-name{font-size:14px;font-weight:600;}.lr-desc{font-size:12px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.lr-actions{display:flex;align-items:center;gap:8px;flex-shrink:0;}
+.projects-table{width:100%;border-collapse:collapse;}
+.projects-table th{text-align:left;padding:10px 14px;font-size:11px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border);background:var(--surface);}
+.projects-table td{padding:12px 14px;border-bottom:1px solid var(--border2);font-size:13px;vertical-align:middle;}
+.projects-table tr:last-child td{border-bottom:none;}.projects-table tr:hover td{background:var(--surface2);}
+.t-wrap{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.no-access{text-align:center;padding:60px 20px;color:var(--text2);}.no-access .na-icon{font-size:40px;margin-bottom:12px;}
+footer{text-align:center;padding:16px;font-size:11px;color:var(--text3);border-top:1px solid var(--border);}
+footer a{color:var(--text3);text-decoration:none;}
+@media(max-width:640px){header{padding:0 12px;}.h-nav{display:none;}main{padding:16px;}.projects-grid{grid-template-columns:1fr;}.sidebar{width:100%;max-width:100vw;}}
+.pat-input-area{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:16px;margin:12px 0;}
+.pat-input-area label{font-size:11px;color:var(--text3);display:block;margin-bottom:4px;}
+.pat-input-area input{width:100%;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;font-family:monospace;}
+.pat-input-area small{font-size:11px;color:var(--text3);margin-top:4px;display:block;}
+</style>
+</head>
+<body>
+
+<div id="login-overlay">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="licon">&#127968;</div>
+      <h1>项目门户</h1>
+      <p>Projects Portal</p>
+    </div>
+    <div class="lf"><label>用户名</label><input type="text" id="l-user" placeholder="请输入用户名" autocomplete="username"/></div>
+    <div class="lf"><label>密码</label><input type="password" id="l-pass" placeholder="请输入密码" autocomplete="current-password"/></div>
+    <button class="login-btn" onclick="doLogin()">登 录</button>
+    <div class="login-err" id="l-err"></div>
+    <div class="theme-switcher-login">
+      <button class="tsb active" onclick="setTheme('dark',this)">&#127769; 暗黑</button>
+      <button class="tsb" onclick="setTheme('light',this)">&#9728;&#65039; 亮白</button>
+      <button class="tsb" onclick="setTheme('corporate',this)">&#128336; 商务</button>
+    </div>
+  </div>
+</div>
+
+<div class="sidebar-overlay" id="sb-overlay" onclick="closeSidebar()"></div>
+<div class="sidebar" id="sidebar">
+  <div class="sb-header">
+    <h3 id="sb-title">&#9881; 系统管理</h3>
+    <button class="sb-close" onclick="closeSidebar()">&#10005;</button>
+  </div>
+  <div class="sb-body" id="sb-body"></div>
+</div>
+
+<div id="app">
+  <header>
+    <div class="h-left">
+      <div class="h-logo">&#127968;</div>
+      <div><div class="h-title">项目门户</div><div class="h-sub">Projects Portal</div></div>
+    </div>
+    <div class="h-nav">
+      <button class="nav-btn active" onclick="switchTab('projects',this)">&#128230; 项目列表</button>
+      <button class="nav-btn" id="btn-users" onclick="switchTab('admin',this)" style="display:none">&#128100; 用户管理</button>
+    </div>
+    <div class="h-right">
+      <div style="display:flex;gap:3px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:2px;">
+        <button class="view-btn active" onclick="setTheme('dark',this)" title="暗黑">&#127769;</button>
+        <button class="view-btn" onclick="setTheme('light',this)" title="亮白">&#9728;&#65039;</button>
+        <button class="view-btn" onclick="setTheme('corporate',this)" title="商务">&#128336;</button>
+      </div>
+      <div class="user-chip" onclick="toggleUserDropdown()">
+        <div class="u-avatar" id="u-avatar" style="background:linear-gradient(135deg,#2563eb,#16a34a)">S</div>
+        <div><div class="u-name" id="u-name">songhw</div><div class="u-role" id="u-role">管理员</div></div>
+        <span style="color:var(--text3);font-size:10px;">&#9662;</span>
+        <div class="user-dropdown" id="user-dropdown">
+          <div class="ud-item" onclick="openSidebar('profile')">&#128100; 个人信息</div>
+          <div class="ud-item" onclick="openSidebar('changepwd')">&#128274; 修改密码</div>
+          <div class="ud-item" onclick="openSidebar('pat-setting')">&#9881; GitHub Token</div>
+          <div class="ud-divider"></div>
+          <div class="ud-item" onclick="doLogout()">&#128682; 退出登录</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div id="tab-projects">
+      <div class="page-hd">
+        <h2 id="page-title">&#128230; 我的项目清单</h2>
+        <div class="page-hd-right">
+          <div class="view-switcher">
+            <button class="view-btn active" onclick="setView('grid',this)" title="卡片视图">&#9745;</button>
+            <button class="view-btn" onclick="setView('list',this)" title="列表视图">&#9776;</button>
+            <button class="view-btn" onclick="setView('table',this)" title="表格视图">&#9747;</button>
+          </div>
+          <button class="btn-secondary" onclick="openSidebar('authctrl')" id="btn-authctrl" style="display:none">&#9881; 访问控制</button>
+        </div>
+      </div>
+      <div class="stats-bar" id="stats-bar"></div>
+      <div id="projects-container"></div>
+    </div>
+    <div id="tab-admin" style="display:none">
+      <div class="page-hd"><h2>&#128100; 用户管理</h2></div>
+      <div id="admin-panel"></div>
+    </div>
+  </main>
+  <footer>&#169; 2026 Projects Portal &middot; <a href="https://github.com/songhonglu" target="_blank">GitHub</a></footer>
+</div>
+
+<script>
+// GitHub 配置
+const GITHUB_REPO = 'songhonglu/portal-users';
+const GITHUB_BRANCH = 'main';
+const GITHUB_FILE_PATH = 'users.json';
+
+// 项目列表
+const PROJECTS = [
+  { id:'contractmap',       name:'合同数字化平台集成全景图', desc:'浙江省机电集团合同数字化平台·系统集成全景图 v2.0，可视化呈现各系统集成关系与数据流转。', icon:'🕿', iconBg:'rgba(88,166,255,.15)', color:'#58a6ff', github:'https://github.com/songhonglu/contractmap',       live:'https://songhonglu.github.io/contractmap/',       hasPages:true,  defaultAuth:true  },
+  { id:'huarongdao-game',   name:'数字华容道',               desc:'经典数字华容道益智解谜游戏，支持多种难度关卡，纯前端实现，流畅体验。',                       icon:'🎮', iconBg:'rgba(63,185,80,.15)',  color:'#3fb950', github:'https://github.com/songhonglu/huarongdao-game', live:'https://songhonglu.github.io/huarongdao-game/', hasPages:true,  defaultAuth:false },
+  { id:'prompt-hub',        name:'提示词管理系统',           desc:'AI提示词管理工具，支持提示词生成、优化改写、提示词库管理（收藏/分类/搜索/导入导出）。',       icon:'✨', iconBg:'rgba(139,92,246,.15)', color:'#8b5cf6', github:'https://github.com/songhonglu/projects',         live:'https://songhonglu.github.io/projects/prompt-hub/', hasPages:true,  defaultAuth:true  },
+  { id:'amberk',            name:'Amberk',                   desc:'私有代码仓库，包含个人项目和实验性代码，暂未开放 GitHub Pages 访问。',                           icon:'🔒', iconBg:'rgba(247,129,102,.12)',color:'#f78166', github:'https://github.com/songhonglu/amberk',           live:null,                                              hasPages:false, defaultAuth:true  },
+  { id:'number-huarongdao', name:'数字华容道（早期版本）',   desc:'数字华容道游戏的早期版本，后续由 huarongdao-game 仓库迭代替代，暂未启用 Pages。',               icon:'🧩', iconBg:'rgba(210,153,34,.15)', color:'#d29922', github:'https://github.com/songhonglu/number-huarongdao',live:null,                                              hasPages:false, defaultAuth:false },
+  { id:'softkao-assistant', name:'2026软考高项助手',        desc:'2026年信息系统项目管理师备考助手，含题库练习、ITTO速查、计算题、论文素材、错题本等功能。',         icon:'📚', iconBg:'rgba(234,88,12,.15)',  color:'#ea580c', github:'https://github.com/songhonglu/softkao-assistant', live:'https://songhonglu.github.io/softkao-assistant/', hasPages:true,  defaultAuth:false },
+  { id:'daily-signin',      name:'每日签到',                desc:'PMP平台每日自动签到任务，每天早上9点自动执行，记录签到结果与收益（+$20/天），点击查看签到历史记录。', icon:'✅', iconBg:'rgba(63,185,80,.15)', color:'#3fb950', github:'https://github.com/songhonglu/projects',         live:'https://songhonglu.github.io/projects/daily-signin/', hasPages:true, defaultAuth:false },
+];
+
+const SES_KEY = 'portal_session';
+let currentUser = null;
+let dbData = null;
+let ghToken = '';
+
+function getToken(){return sessionStorage.getItem('portal_token')||'';}
+function setToken(t){sessionStorage.setItem('portal_token',t);}
+
+// 获取 GitHub Token（优先从 sessionStorage，否则从输入框）
+function getGhToken() {
+  if (!ghToken) {
+    const stored = sessionStorage.getItem('gh_pat');
+    if (stored) {
+      ghToken = stored;
+    }
+  }
+  return ghToken;
+}
+
+function setGhToken(t) {
+  ghToken = t;
+  if (t) sessionStorage.setItem('gh_pat', t);
+  else sessionStorage.removeItem('gh_pat');
+}
+
+// GitHub API 调用
+async function githubApi(method, path, body = null) {
+  const token = getGhToken();
+  if (!token) throw new Error('请先配置 GitHub Token');
+  const url = `https://api.github.com${path}`;
+  const headers = {
+    'Authorization': `token ${token}`,
+    'Accept': 'application/vnd.github.v3+json',
+    'Content-Type': 'application/json',
+    'X-GitHub-Api-Version': '2022-11-28',
+  };
+  const options = { method, headers };
+  if (body) options.body = JSON.stringify(body);
+  const r = await fetch(url, options);
+  const data = await r.json();
+  if (!r.ok) throw new Error(data.message || `GitHub API Error: ${r.status}`);
+  return data;
+}
+
+// 加载用户数据
+async function loadUserData() {
+  try {
+    const data = await githubApi('GET', `/repos/${GITHUB_REPO}/contents/${GITHUB_FILE_PATH}?ref=${GITHUB_BRANCH}`);
+    if (data.content) {
+      dbData = JSON.parse(atob(data.content));
+      return dbData;
+    }
+    throw new Error('Failed to load user data');
+  } catch (error) {
+    console.error('Failed to load user data:', error);
+    dbData = {
+      users: [
+        { id:'user_admin',username:'songhw',displayName:'宋老师',role:'admin',projectPerms:null,avatar:'#2563eb',email:'',phone:'',passwordHash:'d4ecee721c1e120a1c323228929924311c9ccd3f02c3999f749b41516d67f9b1' },
+        { id:'user_chenpt',username:'chenpt',displayName:'陈鹏涛',role:'user',projectPerms:[],avatar:'#16a34a',email:'',phone:'',passwordHash:'60b502d518962974e4f8629ce8f783e21c746dc0ea87ddf53f4b10d0bfa29567' }
+      ],
+      authCtrl:{contractmap:true,'huarongdao-game':false,amberk:true,'number-huarongdao':false,'daily-signin':false},
+      theme:'dark'
+    };
+    return dbData;
+  }
+}
+
+// 保存用户数据
+async function saveUserData() {
+  if (!dbData) return;
+  try {
+    const fileData = await githubApi('GET', `/repos/${GITHUB_REPO}/contents/${GITHUB_FILE_PATH}?ref=${GITHUB_BRANCH}`);
+    const payload = {
+      message: 'Update user data',
+      content: btoa(unescape(encodeURIComponent(JSON.stringify(dbData, null, 2)))),
+      sha: fileData.sha,
+      branch: GITHUB_BRANCH
+    };
+    await githubApi('PUT', `/repos/${GITHUB_REPO}/contents/${GITHUB_FILE_PATH}`, payload);
+  } catch (error) {
+    console.error('Failed to save user data:', error);
+    throw error;
+  }
+}
+
+// 密码哈希（SHA-256 兼容后端）
+function hashPassword(username, password) {
+  // 使用 Web Crypto API 做 SHA-256
+  const encoder = new TextEncoder();
+  const data = encoder.encode(`${username}:${password}`);
+  return crypto.subtle.digest('SHA-256', data).then(h => {
+    return Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2,'0')).join('');
+  });
+}
+
+// 异步登录（因为 hashPassword 返回 Promise）
+async function doLogin() {
+  const username = document.getElementById('l-user').value.trim();
+  const password = document.getElementById('l-pass').value;
+  if (!username || !password) { showLoginErr('请输入用户名和密码'); return; }
+
+  try {
+    // 先加载 GitHub Token 提示（如果没有）
+    if (!getGhToken()) {
+      showLoginErr('请先点击右上角 "GitHub Token" 配置 Token');
+      return;
+    }
+    await loadUserData();
+    const user = dbData.users.find(u => u.username === username);
+    if (!user) { showLoginErr('用户不存在'); return; }
+    const expectedHash = await hashPassword(username, password);
+    if (user.passwordHash !== expectedHash) { showLoginErr('密码错误'); return; }
+    currentUser = { ...user };
+    const sesData = { uid: currentUser.id, username: currentUser.username, ts: Date.now() };
+    sessionStorage.setItem(SES_KEY, JSON.stringify(sesData));
+    showApp(currentUser);
+  } catch (err) {
+    showLoginErr(err.message || '登录失败');
+  }
+}
+
+function doLogout() {
+  currentUser = null;
+  sessionStorage.removeItem(SES_KEY);
+  document.getElementById('app').classList.remove('visible');
+  document.getElementById('login-overlay').classList.remove('hidden');
+  document.getElementById('l-pass').value = '';
+  document.getElementById('l-user').value = '';
+  closeUserDropdown();
+}
+
+function restoreSession() {
+  try {
+    const ses = JSON.parse(sessionStorage.getItem(SES_KEY) || 'null');
+    if (!ses) return null;
+    const tk = getGhToken();
+    if (!tk) return null;
+    return ses;
+  } catch { return null; }
+}
+
+function showLoginErr(msg) {
+  const el = document.getElementById('l-err');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 3500);
+}
+
+// 主题
+function setTheme(t, btn) {
+  document.documentElement.setAttribute('data-theme', t);
+  document.querySelectorAll('.tsb,.view-btn[onclick*="setTheme"]').forEach(b => {
+    b.classList.toggle('active', b === btn || (b.getAttribute('onclick')||'').includes(`'${t}'`));
+  });
+  if (dbData) { dbData.theme = t; saveUserData(); }
+}
+
+function applyStoredTheme() {
+  const t = (dbData && dbData.theme) ? dbData.theme : 'dark';
+  document.documentElement.setAttribute('data-theme', t);
+}
+
+// 视图切换
+let currentView = 'grid';
+function setView(v, btn) {
+  currentView = v;
+  document.querySelectorAll('.view-switcher .view-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderProjects();
+}
+
+function getUserProjects() {
+  if (!currentUser) return [];
+  const db = dbData || {};
+  const latestUser = db.users.find(u => u.id === currentUser.id);
+  if (!latestUser) return [];
+  currentUser.projectPerms = latestUser.projectPerms;
+  if (latestUser.role === 'admin' || latestUser.projectPerms === null) return PROJECTS;
+  return PROJECTS.filter(p => (latestUser.projectPerms || []).includes(p.id));
+}
+
+function ghIconSvg() {
+  return '<svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>';
+}
+
+function renderProjects() {
+  const container = document.getElementById('projects-container');
+  const projects = getUserProjects();
+  const db = dbData || {};
+  if (projects.length === 0) {
+    container.innerHTML = '<div class="no-access"><div class="na-icon">&#128274;</div><p>您没有任何项目的访问权限，请联系管理员</p></div>';
+    return;
+  }
+  const total = projects.length;
+  const live = projects.filter(p => p.hasPages).length;
+  const authCount = projects.filter(p => (p.id in db.authCtrl) ? db.authCtrl[p.id] : p.defaultAuth).length;
+  document.getElementById('stats-bar').innerHTML =
+    '<div class="stat-chip"><strong>'+total+'</strong> 个项目</div>' +
+    '<div class="stat-chip"><strong>'+live+'</strong> 个已上线</div>' +
+    '<div class="stat-chip"><strong>'+authCount+'</strong> 个需认证</div>';
+
+  if (currentView === 'grid') {
+    container.innerHTML = '<div class="projects-grid">' + projects.map(p => makeCard(p, db)).join('') + '</div>';
+  } else if (currentView === 'list') {
+    container.innerHTML = '<div class="projects-list">' + projects.map(p => makeListRow(p, db)).join('') + '</div>';
+  } else {
+    container.innerHTML = makeTableView(projects, db);
+  }
+}
+
+function makeCard(proj, db) {
+  const authOn = (proj.id in db) ? db.authCtrl[proj.id] : proj.defaultAuth;
+  const canVisit = proj.hasPages && proj.live;
+  return '<div class="project-card" style="--card-color:'+proj.color+'">' +
+    '<div class="card-hd">' +
+      '<div class="card-icon" style="background:'+proj.iconBg+'">'+proj.icon+'</div>' +
+      '<div class="card-badges">' +
+        (proj.hasPages ? '<span class="badge badge-live">&#9679; 已上线</span>' : '') +
+        (authOn ? '<span class="badge badge-private">&#128274; 需认证</span>' : '<span class="badge badge-public">&#127760; 公开</span>') +
+      '</div>' +
+    '</div>' +
+    '<div class="card-title">'+proj.name+'</div>' +
+    '<div class="card-desc">'+proj.desc+'</div>' +
+    '<div class="card-footer">' +
+      (canVisit ? '<button class="visit-btn" style="background:'+proj.color+'" onclick="visitProject(\''+proj.id+'\')">&#128640; 访问项目</button>' : '<span class="visit-btn locked">&#9203; 暂未上线</span>') +
+      '<a class="gh-btn" href="'+proj.github+'" target="_blank">'+ghIconSvg()+' GitHub</a>' +
+    '</div></div>';
+}
+
+function makeListRow(proj, db) {
+  const authOn = (proj.id in db) ? db.authCtrl[proj.id] : proj.defaultAuth;
+  const canVisit = proj.hasPages && proj.live;
+  return '<div class="project-list-row" style="--card-color:'+proj.color+'">' +
+    '<div class="lr-icon" style="background:'+proj.iconBg+'">'+proj.icon+'</div>' +
+    '<div class="lr-info">' +
+      '<div class="lr-name">'+proj.name+(authOn?'<span class="badge badge-private" style="vertical-align:middle">&#128274;</span>':'<span class="badge badge-public" style="vertical-align:middle">&#127760;</span>')+'</div>' +
+      '<div class="lr-desc">'+proj.desc+'</div>' +
+    '</div>' +
+    '<div class="lr-actions">' +
+      (canVisit ? '<button class="visit-btn" style="background:'+proj.color+';min-width:80px" onclick="visitProject(\''+proj.id+'\')">&#128640; 访问</button>' : '<span class="visit-btn locked" style="min-width:80px">&#9203; 未上线</span>') +
+      '<a class="gh-btn" href="'+proj.github+'" target="_blank">'+ghIconSvg()+'</a>' +
+    '</div></div>';
+}
+
+function makeTableView(projects, db) {
+  let rows = projects.map(p => {
+    const authOn = (p.id in db) ? db.authCtrl[p.id] : p.defaultAuth;
+    const canVisit = p.hasPages && p.live;
+    return '<tr>' +
+      '<td><span style="font-size:18px">'+p.icon+'</span></td>' +
+      '<td><strong>'+p.name+'</strong></td>' +
+      '<td style="color:var(--text2);max-width:240px">'+p.desc.substring(0,40)+'&#8230;</td>' +
+      '<td>'+p.hasPages?'<span class="badge badge-live">已上线</span>':'<span style="color:var(--text3);font-size:11px">未上线</span>'+'</td>' +
+      '<td>'+authOn?'<span class="badge badge-private">需认证</span>':'<span class="badge badge-public">公开</span>'+'</td>' +
+      '<td>'+(canVisit?'<button class="visit-btn" style="background:'+p.color+';min-width:70px;padding:6px 10px;font-size:11px" onclick="visitProject(\''+p.id+'\')">&#128640; 访问</button>':'<span style="color:var(--text3);font-size:11px">暂未上线</span>')+'</td>' +
+    '</tr>';
+  }).join('');
+  return '<div class="t-wrap"><table class="projects-table"><thead><tr><th></th><th>项目名称</th><th>简介</th><th>状态</th><th>访问</th><th>操作</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
+
+function visitProject(projId) {
+  const proj = PROJECTS.find(p => p.id === projId);
+  if (!proj || !proj.live) return;
+  window.open(proj.live, '_blank');
+}
+
+// 用户管理
+function renderAdminPanel() {
+  const db = dbData || {};
+  const panel = document.getElementById('admin-panel');
+  if (!currentUser) return;
+  const isAdmin = currentUser.role === 'admin';
+  let usersToShow = isAdmin ? db.users : (db.users.find(u => u.id === currentUser.id) ? [db.users.find(u => u.id === currentUser.id)] : []);
+
+  if (isAdmin) {
+    const rows = usersToShow.map(u => {
+      const perms = u.projectPerms === null ? PROJECTS.map(p => p.id) : (u.projectPerms || []);
+      const permNames = perms.map(pid => { const proj = PROJECTS.find(p => p.id === pid); return proj ? proj.icon : pid; }).join(' ');
+      return '<tr id="ur-'+u.id+'">' +
+        '<td><div style="display:flex;align-items:center;gap:8px;"><div class="u-avatar" style="width:28px;height:28px;border-radius:50%;background:'+u.avatar+';display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700">'+u.username[0].toUpperCase()+'</div><div><div style="font-size:13px;font-weight:600">'+u.displayName+'</div><div style="font-size:11px;color:var(--text3)">@'+u.username+'</div></div></div></td>' +
+        '<td><span style="font-size:11px;padding:2px 8px;border-radius:12px;background:'+(u.role==='admin'?'rgba(210,153,34,.15)':'rgba(88,166,255,.1)')+';color:'+(u.role==='admin'?'var(--accent4)':'var(--accent)')+';">'+(u.role==='admin'?'&#128114; 管理员':'&#128100; 普通用户')+'</span></td>' +
+        '<td style="font-size:12px;color:var(--text2);">'+(u.email||'-')+'</td>' +
+        '<td style="font-size:12px;color:var(--text2);">'+(u.phone||'-')+'</td>' +
+        '<td style="font-size:12px;">'+permNames||'-'+'</td>' +
+        '<td><div style="display:flex;gap:4px;">' +
+          '<button class="icon-btn" onclick="openUserEditModal(\''+u.id+'\')">&#9998; 编辑</button>' +
+          (u.id !== 'user_admin' ? '<button class="icon-btn" onclick="resetPassword(\''+u.id+'\')">&#128274; 重置密码</button>' : '') +
+          (u.id !== 'user_admin' ? '<button class="icon-btn danger" onclick="deleteUser(\''+u.id+'\')">&#128465; 删除</button>' : '') +
+        '</div></td></tr>';
+    }).join('');
+    panel.innerHTML = '<div class="add-user-form"><div style="font-size:13px;font-weight:600;margin-bottom:10px;color:var(--text)">&#10133; 添加新用户</div>' +
+      '<div class="form-row"><input type="text" id="new-user" placeholder="用户名（英文）" /><input type="text" id="new-display" placeholder="显示名称" /></div>' +
+      '<div class="form-row"><input type="password" id="new-pass" placeholder="初始密码" /><select id="new-role"><option value="user">普通用户</option><option value="admin">管理员</option></select></div>' +
+      '<div class="form-actions"><button class="btn-primary" onclick="addUser()">创建用户</button></div></div>' +
+      '<div class="sb-section-title">用户列表（'+db.users.length+' 人）</div>' +
+      '<div class="t-wrap" style="margin-top:12px;"><table class="projects-table"><thead><tr><th>用户</th><th>角色</th><th>邮箱</th><th>手机</th><th>项目权限</th><th>操作</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  } else {
+    const u = usersToShow[0];
+    if (!u) { panel.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text3);">未找到用户信息</div>'; return; }
+    const userProjects = getUserProjects();
+    panel.innerHTML = '<div style="max-width:500px;margin:0 auto;"><div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;">' +
+      '<div style="text-align:center;margin-bottom:20px;"><div style="width:64px;height:64px;border-radius:50%;background:'+(u.avatar||'#2563eb')+';display:inline-flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:700;margin-bottom:12px;">'+u.username[0].toUpperCase()+'</div>' +
+      '<div style="font-size:18px;font-weight:700;">'+u.displayName+'</div><div style="font-size:13px;color:var(--text3);margin-top:4px;">@'+u.username+'</div>' +
+      '<div style="font-size:12px;margin-top:6px;"><span style="padding:3px 10px;border-radius:12px;background:rgba(88,166,255,.1);color:var(--accent);">&#128100; 普通用户</span></div></div>' +
+      '<div style="margin-bottom:20px;"><div style="font-size:12px;color:var(--text3);margin-bottom:8px;font-weight:600;">&#128231; 联系信息</div>' +
+      '<div style="background:var(--surface2);border-radius:8px;padding:16px;">' +
+      '<div style="margin-bottom:12px;"><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px;">邮箱地址</label><input type="email" id="self-email" value="'+(u.email||'')+'" style="width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;" /></div>' +
+      '<div style="margin-bottom:12px;"><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px;">手机号码</label><input type="tel" id="self-phone" value="'+(u.phone||'')+'" style="width:100%;padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:14px;" /></div>' +
+      '<button class="btn-primary" onclick="updateSelfInfo()" style="width:100%;">&#128190; 保存联系信息</button></div></div>' +
+      '<div><div style="font-size:12px;color:var(--text3);margin-bottom:8px;font-weight:600;">&#128230; 已授权项目（'+userProjects.length+'个）</div>' +
+      '<div style="display:flex;flex-direction:column;gap:8px;">' + userProjects.map(p => '<div style="display:flex;align-items:center;gap:10px;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;"><span style="font-size:20px;">'+p.icon+'</span><div style="flex:1;"><div style="font-size:13px;font-weight:600;">'+p.name+'</div><div style="font-size:11px;color:var(--text3);">'+p.desc.substring(0,30)+'...</div></div>' + (p.hasPages&&p.live?'<a href="'+p.live+'" target="_blank" style="padding:6px 12px;background:var(--accent);color:#fff;border-radius:6px;text-decoration:none;font-size:12px;">访问</a>':'<span style="font-size:11px;color:var(--text3);">未上线</span>')+'</div>').join('') + '</div></div></div></div>';
+  }
+}
+
+let editingUserId = null;
+function openUserEditModal(uid) {
+  if (!currentUser || currentUser.role !== 'admin') return;
+  editingUserId = uid;
+  renderEditModal();
+  // 创建/显示弹窗
+  let modal = document.getElementById('user-edit-modal');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'user-edit-modal';
+    modal.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:400;align-items:center;justify-content:center;';
+    document.body.appendChild(modal);
+  }
+  modal.style.display = 'flex';
+}
+
+async function renderEditModal() {
+  try {
+    const db = dbData || {};
+    const user = db.users.find(u => u.id === editingUserId);
+    if (!user) return;
+    let modal = document.getElementById('user-edit-modal');
+    if (!modal) return;
+    const perms = user.role === 'admin' ? PROJECTS.map(p => p.id) : (user.projectPerms || []);
+    window._editUserOriginalPerms = [...perms];
+    const permChips = PROJECTS.map(p =>
+      '<span class="perm-chip '+perms.includes(p.id)?'on':''" onclick="toggleEditPerm(\''+p.id+'\')" style="cursor:pointer;">'+p.icon+' '+p.name+'</span>'
+    ).join('');
+    modal.innerHTML = '<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;width:400px;max-width:90vw;">' +
+      '<h3 style="margin:0 0 16px 0;font-size:16px;">&#9998; 编辑用户信息</h3>' +
+      '<div class="lf" style="margin-bottom:12px;"><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px;">显示名称</label><input type="text" id="edit-displayName" value="'+(user.displayName||'')+'" style="width:100%;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);"/></div>' +
+      '<div class="lf" style="margin-bottom:12px;"><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px;">邮箱地址</label><input type="email" id="edit-email" value="'+(user.email||'')+'" style="width:100%;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);"/></div>' +
+      '<div class="lf" style="margin-bottom:12px;"><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px;">手机号码</label><input type="tel" id="edit-phone" value="'+(user.phone||'')+'" style="width:100%;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);"/></div>' +
+      '<div class="lf" style="margin-bottom:16px;"><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px;">项目权限（点击切换）</label><div id="edit-perms" style="display:flex;flex-wrap:wrap;gap:6px;padding:10px;background:var(--surface2);border-radius:6;">'+permChips+'</div></div>' +
+      '<div style="display:flex;gap:8px;justify-content:flex-end;"><button class="btn-secondary" onclick="closeUserEditModal()">取消</button><button class="btn-primary" onclick="saveUserEdit()">保存</button></div></div>';
+  } catch(err) { console.error(err); }
+}
+
+function closeUserEditModal() {
+  const modal = document.getElementById('user-edit-modal');
+  if (modal) modal.style.display = 'none';
+  editingUserId = null;
+}
+
+function toggleEditPerm(projId) {
+  const chip = document.querySelector('#edit-perms .perm-chip[onclick*="'+projId+'"]');
+  if (chip) chip.classList.toggle('on');
+}
+
+async function saveUserEdit() {
+  if (!currentUser || currentUser.role !== 'admin') { alert('无权保存用户信息'); return; }
+  const displayName = document.getElementById('edit-displayName').value.trim();
+  const email = document.getElementById('edit-email').value.trim();
+  const phone = document.getElementById('edit-phone').value.trim();
+  if (!displayName) { alert('显示名称不能为空'); return; }
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { alert('邮箱格式不正确'); return; }
+  if (phone && !/^1[3-9]\d{9}$/.test(phone)) { alert('手机号格式不正确'); return; }
+  const chips = document.querySelectorAll('#edit-perms .perm-chip');
+  const perms = [];
+  chips.forEach(c => { if(c.classList.contains('on')) { const m = c.getAttribute('onclick').match(/\"([^\"]+)\"/); if(m) perms.push(m[1]); } });
+  try {
+    const db = dbData;
+    const user = db.users.find(u => u.id === editingUserId);
+    if (user) {
+      user.displayName = displayName; user.email = email; user.phone = phone; user.projectPerms = perms;
+    }
+    await saveUserData();
+    if (currentUser && currentUser.id === editingUserId) {
+      currentUser.displayName = displayName; currentUser.email = email; currentUser.phone = phone; currentUser.projectPerms = perms;
+      document.getElementById('u-name').textContent = displayName;
+    }
+    closeUserEditModal();
+    renderAdminPanel();
+    alert('用户信息已保存');
+  } catch(err) { alert(err.message || '保存失败'); }
+}
+
+async function updateSelfInfo() {
+  const email = document.getElementById('self-email').value.trim();
+  const phone = document.getElementById('self-phone').value.trim();
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { alert('邮箱格式不正确'); return; }
+  if (phone && !/^1[3-9]\d{9}$/.test(phone)) { alert('手机号格式不正确'); return; }
+  try {
+    const db = dbData;
+    const user = db.users.find(u => u.id === currentUser.id);
+    if (user) { user.email = email; user.phone = phone; }
+    await saveUserData();
+    currentUser.email = email; currentUser.phone = phone;
+    alert('✅ 联系信息已保存');
+  } catch(err) { alert(err.message || '保存失败'); }
+}
+
+async function changePassword() {
+  const old = document.getElementById('cp-old').value;
+  const np = document.getElementById('cp-new').value;
+  const nc = document.getElementById('cp-confirm').value;
+  if (!old||!np) { alert('请填写所有字段'); return; }
+  if (np.length < 6) { alert('新密码至少6位'); return; }
+  if (np !== nc) { alert('两次密码不一致'); return; }
+  try {
+    const db = dbData;
+    const user = db.users.find(u => u.id === currentUser.id);
+    const oldHash = await hashPassword(user.username, old);
+    if (oldHash !== user.passwordHash) { alert('旧密码错误'); return; }
+    user.passwordHash = await hashPassword(user.username, np);
+    await saveUserData();
+    alert('✅ 密码已成功修改');
+    closeSidebar();
+  } catch(err) { alert(err.message || '修改失败'); }
+}
+
+async function addUser() {
+  if (!currentUser || currentUser.role !== 'admin') { alert('无权添加用户'); return; }
+  const username = document.getElementById('new-user').value.trim();
+  const display = document.getElementById('new-display').value.trim();
+  const pass = document.getElementById('new-pass').value;
+  const role = document.getElementById('new-role').value;
+  if (!username || !pass) { alert('用户名和密码不能为空'); return; }
+  if (!/^[a-zA-Z0-9_-]{2,20}$/.test(username)) { alert('用户名只能包含字母、数字、下划线，2-20字符'); return; }
+  try {
+    const db = dbData;
+    const newId = 'user_' + username;
+    const pwHash = await hashPassword(username, pass);
+    db.users.push({ id:newId, username, displayName:display||username, role, projectPerms:role==='admin'?null:[], avatar:'#2563eb', email:'', phone:'', passwordHash:pwHash });
+    await saveUserData();
+    document.getElementById('new-user').value = '';
+    document.getElementById('new-display').value = '';
+    document.getElementById('new-pass').value = '';
+    alert('用户 "'+username+'" 已创建成功');
+    renderAdminPanel();
+  } catch(err) { alert(err.message || '添加失败'); }
+}
+
+async function resetPassword(uid) {
+  if (!currentUser || currentUser.role !== 'admin') { alert('无权重置密码'); return; }
+  const newPass = prompt('请输入新密码（至少6位）：');
+  if (!newPass || newPass.length < 6) { alert('密码不能少于6位'); return; }
+  try {
+    const db = dbData;
+    const user = db.users.find(u => u.id === uid);
+    if (user) { user.passwordHash = await hashPassword(user.username, newPass); await saveUserData(); alert('密码已重置'); }
+  } catch(err) { alert(err.message || '重置失败'); }
+}
+
+function deleteUser(uid) {
+  if (!currentUser || currentUser.role !== 'admin') { alert('无权删除用户'); return; }
+  if (!confirm('确定要删除该用户吗？此操作不可撤销！')) return;
+  try {
+    const db = dbData;
+    const idx = db.users.findIndex(u => u.id === uid);
+    if (idx === -1) return;
+    db.users.splice(idx, 1);
+    saveUserData().then(() => { alert('用户已删除'); renderAdminPanel(); });
+  } catch(err) { alert(err.message); }
+}
+
+// 侧边栏
+function openSidebar(type) {
+  closeUserDropdown();
+  const sb = document.getElementById('sidebar');
+  const overlay = document.getElementById('sb-overlay');
+  const title = document.getElementById('sb-title');
+  const body = document.getElementById('sb-body');
+  sb.classList.add('show'); overlay.classList.add('show');
+
+  if (type === 'authctrl') {
+    title.textContent = '🛡️ 子项目访问控制';
+    body.innerHTML = '<div class="sb-section"><div class="sb-section-title">各子项目访问控制</div>' +
+      '<p style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">开启后，未通过门户认证的用户访问该子项目时将被跳转回门户登录页。</p>' +
+      PROJECTS.map(p => '<div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;margin-bottom:8px;">' +
+        '<div style="display:flex;align-items:center;gap:10px"><span style="font-size:18px">'+p.icon+'</span><div><div style="font-size:13px;font-weight:600">'+p.name+'</div></div></div>' +
+        '<label class="toggle-sw"><input type="checkbox" '+((dbData&&dbData.authCtrl&&dbData.authCtrl[p.id])||p.defaultAuth?'checked':'')+' onchange="toggleAuth(\''+p.id+'\',this.checked)"><div class="toggle-track"></div><div class="toggle-thumb"></div></label></div>'
+      ).join('') + '</div>';
+  } else if (type === 'profile') {
+    title.textContent = '👤 个人信息';
+    body.innerHTML = '<div class="sb-section"><div style="text-align:center;padding:20px 0">' +
+      '<div style="width:60px;height:60px;border-radius:50%;background:'+(currentUser.avatar||'#2563eb')+';display:inline-flex;align-items:center;justify-content:center;font-size:24px;font-weight:700;color:#fff;margin-bottom:10px">'+currentUser.username[0].toUpperCase()+'</div>' +
+      '<div style="font-size:16px;font-weight:700">'+currentUser.displayName+'</div>' +
+      '<div style="font-size:12px;color:var(--text2)">@'+currentUser.username+'</div>' +
+      '<div style="font-size:11px;margin-top:4px;color:'+(currentUser.role==='admin'?'var(--accent4)':'var(--text2)')+'">'+(currentUser.role==='admin'?'👑 管理员':'👤 普通用户')+'</div></div>' +
+      '<div class="sb-section-title" style="margin-top:16px">📧 联系信息</div>' +
+      '<div style="padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:12px;">' +
+      '<div class="lf" style="margin-bottom:10px;"><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px;">邮箱地址</label><input type="email" id="profile-email" value="'+(currentUser.email||'')+'" style="width:100%;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;"/></div>' +
+      '<div class="lf" style="margin-bottom:10px;"><label style="font-size:11px;color:var(--text3);display:block;margin-bottom:4px;">手机号码</label><input type="tel" id="profile-phone" value="'+(currentUser.phone||'')+'" style="width:100%;padding:8px 10px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px;"/></div>' +
+      '<button class="btn-primary" onclick="updateProfileFromSidebar()" style="width:100%;">💾 保存联系信息</button></div>' +
+      '<div class="sb-section-title">可访问项目</div>' +
+      getUserProjects().map(p=>'<div style="padding:8px 12px;margin-bottom:6px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;font-size:13px">'+p.icon+' '+p.name+'</div>').join('') +
+      '</div>';
+  } else if (type === 'changepwd') {
+    title.textContent = '🔑 修改密码';
+    body.innerHTML = '<div class="sb-section"><div class="lf"><label>当前密码</label><input type="password" id="cp-old" placeholder="当前密码"/></div>' +
+      '<div class="lf"><label>新密码</label><input type="password" id="cp-new" placeholder="新密码（至少6位）"/></div>' +
+      '<div class="lf"><label>确认新密码</label><input type="password" id="cp-confirm" placeholder="再次输入新密码"/></div>' +
+      '<button class="btn-primary" onclick="changePassword()">确认修改</button></div>';
+  } else if (type === 'pat-setting') {
+    title.textContent = '\u2699\ufe0f GitHub Token';
+    const currentToken = getGhToken();
+    body.innerHTML = '<div class="sb-section">' +
+      '<div class="pat-input-area">' +
+        '<label>GitHub Personal Access Token</label>' +
+        '<input type="password" id="gh-pat-input" value="" placeholder="输入您的 GitHub PAT" />' +
+        '<small>用于访问私有仓库 portal-users 存储用户数据。Token 仅保存在浏览器 sessionStorage 中。</small>' +
+        '<div style="margin-top:10px;display:flex;gap:8px;">' +
+          '<button class="btn-primary" onclick="saveGhToken()">保存</button>' +
+          '<button class="btn-secondary" onclick="clearGhToken()">清除</button>' +
+        '</div>' +
+        (currentToken ? '<div style="margin-top:8px;font-size:11px;color:var(--accent2)">✅ Token 已配置</div>' : '<div style="margin-top:8px;font-size:11px;color:var(--accent3)">\u26a0\ufe0f 未配置 Token，请先配置后再登录</div>') +
+      '</div></div>';
+  }
+}
+
+function saveGhToken() {
+  const input = document.getElementById('gh-pat-input');
+  if (input && input.value.trim()) {
+    setGhToken(input.value.trim());
+    alert('Token 已保存，请重新登录');
+    closeSidebar();
+  }
+}
+
+function clearGhToken() {
+  setGhToken('');
+  alert('Token 已清除');
+  closeSidebar();
+}
+
+function updateProfileFromSidebar() {
+  const email = document.getElementById('profile-email').value.trim();
+  const phone = document.getElementById('profile-phone').value.trim();
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { alert('邮箱格式不正确'); return; }
+  if (phone && !/^1[3-9]\d{9}$/.test(phone)) { alert('手机号格式不正确'); return; }
+  try {
+    const db = dbData;
+    const user = db.users.find(u => u.id === currentUser.id);
+    if (user) { user.email = email; user.phone = phone; }
+    saveUserData().then(() => { currentUser.email = email; currentUser.phone = phone; alert('✅ 联系信息已保存'); closeSidebar(); });
+  } catch(err) { alert(err.message); }
+}
+
+function toggleAuth(projId, enabled) {
+  if (!currentUser || currentUser.role !== 'admin') { alert('无权修改访问控制设置'); return; }
+  if (!dbData) dbData = {};
+  if (!dbData.authCtrl) dbData.authCtrl = {};
+  dbData.authCtrl[projId] = enabled;
+  saveUserData().then(() => renderProjects());
+}
+
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('show');
+  document.getElementById('sb-overlay').classList.remove('show');
+}
+
+// 标签页切换
+function switchTab(tab, btn) {
+  if (tab === 'admin' && (!currentUser || currentUser.role !== 'admin')) { console.warn('无权访问用户管理页面'); return; }
+  document.querySelectorAll('.h-nav .nav-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  document.getElementById('tab-projects').style.display = tab==='projects' ? '' : 'none';
+  document.getElementById('tab-admin').style.display = tab==='admin' ? '' : 'none';
+  if (tab === 'admin') renderAdminPanel();
+  if (tab === 'projects') renderProjects();
+}
+
+// 用户下拉
+function toggleUserDropdown() { document.getElementById('user-dropdown').classList.toggle('show'); }
+function closeUserDropdown() { document.getElementById('user-dropdown').classList.remove('show'); }
+document.addEventListener('click', e => { if (!e.target.closest('.user-chip')) closeUserDropdown(); });
+
+// 显示主应用
+function showApp(user) {
+  document.getElementById('login-overlay').classList.add('hidden');
+  document.getElementById('app').classList.add('visible');
+  document.getElementById('tab-projects').style.display = '';
+  document.getElementById('tab-admin').style.display = 'none';
+  document.querySelectorAll('.h-nav .nav-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('.h-nav .nav-btn[onclick*="projects"]').classList.add('active');
+  document.getElementById('u-name').textContent = user.displayName || user.username;
+  document.getElementById('u-avatar').textContent = user.username[0].toUpperCase();
+  document.getElementById('u-avatar').style.background = user.avatar || 'linear-gradient(135deg,#2563eb,#16a34a)';
+  document.getElementById('u-role').textContent = user.role === 'admin' ? '👑 管理员' : '👤 普通用户';
+  document.getElementById('btn-authctrl').style.display = user.role === 'admin' ? '' : 'none';
+  document.getElementById('btn-users').style.display = user.role === 'admin' ? '' : 'none';
+  renderProjects();
+}
+
+// 初始化
+(async function init() {
+  applyStoredTheme();
+  ['l-user','l-pass'].forEach(id => {
+    document.getElementById(id).addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+  });
+  const ses = restoreSession();
+  if (ses) {
+    try {
+      await loadUserData();
+      const user = dbData.users.find(u => u.id === ses.uid);
+      if (user) { currentUser = user; showApp(user); }
+    } catch(e) { console.warn('Session restore failed:', e); }
+  }
+})();
+</script>
+</body>
+</html>
