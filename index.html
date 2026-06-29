@@ -482,8 +482,8 @@ function makeTableView(projects, db) {
       '<td><span style="font-size:18px">'+p.icon+'</span></td>' +
       '<td><strong>'+p.name+'</strong></td>' +
       '<td style="color:var(--text2);max-width:240px">'+p.desc.substring(0,40)+'&#8230;</td>' +
-      '<td>'+p.hasPages?'<span class="badge badge-live">已上线</span>':'<span style="color:var(--text3);font-size:11px">未上线</span>'+'</td>' +
-      '<td>'+authOn?'<span class="badge badge-private">需认证</span>':'<span class="badge badge-public">公开</span>'+'</td>' +
+      '<td>'+(p.hasPages?'<span class="badge badge-live">已上线</span>':'<span style="color:var(--text3);font-size:11px">未上线</span>')+'</td>' +
+      '<td>'+(authOn?'<span class="badge badge-private">需认证</span>':'<span class="badge badge-public">公开</span>')+'</td>' +
       '<td>'+(canVisit?'<button class="visit-btn" style="background:'+p.color+';min-width:70px;padding:6px 10px;font-size:11px" onclick="visitProject(\''+p.id+'\')">&#128640; 访问</button>':'<span style="color:var(--text3);font-size:11px">暂未上线</span>')+'</td>' +
     '</tr>';
   }).join('');
@@ -570,7 +570,7 @@ async function renderEditModal() {
     const perms = user.role === 'admin' ? PROJECTS.map(p => p.id) : (user.projectPerms || []);
     window._editUserOriginalPerms = [...perms];
     const permChips = PROJECTS.map(p =>
-      '<span class="perm-chip '+perms.includes(p.id)?'on':''" onclick="toggleEditPerm(\''+p.id+'\')" style="cursor:pointer;">'+p.icon+' '+p.name+'</span>'
+      '<span class="perm-chip '+(perms.includes(p.id)?'on':'')+'" onclick="toggleEditPerm(\''+p.id+'\')" style="cursor:pointer;">'+p.icon+' '+p.name+'</span>'
     ).join('');
     modal.innerHTML = '<div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;width:400px;max-width:90vw;">' +
       '<h3 style="margin:0 0 16px 0;font-size:16px;">&#9998; 编辑用户信息</h3>' +
